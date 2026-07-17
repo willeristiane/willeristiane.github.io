@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>外请固定报价查询系统</title>
+<style>
+:root {
+  --primary: #2563EB;
+  --primary-light: #60A5FA;
+  --primary-bg: #EFF6FF;
+  --primary-dark: #1D4ED8;
+  --success: #059669;
+  --success-bg: #ECFDF5;
+  --warning: #D97706;
+  --warning-bg: #FFFBEB;
+  --danger: #DC2626;
+  --danger-bg: #FEF2F2;
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-200: #E5E7EB;
+  --gray-300: #D1D5DB;
+  --gray-400: #9CA3AF;
+  --gray-500: #6B7280;
+  --gray-600: #4B5563;
+  --gray-700: #374151;
+  --gray-800: #1F2937;
+  --gray-900: #111827;
+  --radius: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,.1), 0 2px 4px -1px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 25px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif; background:linear-gradient(180deg,#F0F4FF 0%,#F9FAFB 300px); color:var(--gray-800); line-height:1.6; min-height:100vh; }
+
+/* Header */
+.header { background:linear-gradient(135deg,#1E40AF 0%,#3B82F6 50%,#06B6D4 100%); color:#fff; padding:28px 0 32px; position:relative; overflow:hidden; }
+.header::before { content:''; position:absolute; top:-50%; right:-20%; width:500px; height:500px; background:rgba(255,255,255,.05); border-radius:50%; }
+.header-inner { max-width:1100px; margin:0 auto; padding:0 24px; position:relative; }
+.header h1 { font-size:26px; font-weight:800; letter-spacing:-.5px; }
+.header p { font-size:14px; opacity:.8; margin-top:4px; }
+.header-tags { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.header-tag { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25); padding:4px 12px; border-radius:999px; font-size:12px; }
+
+/* Container & Card */
+.container { max-width:1100px; margin:0 auto; padding:24px; }
+.card { background:#fff; border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:20px; overflow:hidden; }
+.card-header { padding:18px 24px; border-bottom:1px solid var(--gray-100); display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.card-header h2 { font-size:16px; font-weight:700; }
+.card-body { padding:24px; }
+
+/* Input */
+.input-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+.input-group label { display:block; font-size:13px; font-weight:600; color:var(--gray-600); margin-bottom:8px; }
+.input-group label .unit { font-weight:400; color:var(--gray-400); }
+.input-row { display:flex; gap:8px; align-items:center; }
+.input-group input, .input-group select { width:100%; padding:12px 16px; border:2px solid var(--gray-200); border-radius:10px; font-size:16px; font-weight:600; outline:none; transition:border-color .2s; background:#fff; }
+.input-group input:focus, .input-group select:focus { border-color:var(--primary-light); box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+.input-group input::placeholder { color:var(--gray-300); font-weight:400; }
+.input-suffix { font-size:14px; color:var(--gray-500); font-weight:500; white-space:nowrap; }
+
+/* Buttons */
+.btn-calc { width:100%; margin-top:20px; padding:14px; background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; transition:all .2s; box-shadow:0 4px 12px rgba(37,99,235,.3); }
+.btn-calc:hover { transform:translateY(-1px); box-shadow:0 6px 16px rgba(37,99,235,.4); }
+.btn-calc:active { transform:translateY(0); }
+.btn-secondary { padding:8px 16px; background:#fff; border:2px solid var(--gray-200); border-radius:8px; font-size:13px; font-weight:600; color:var(--gray-700); cursor:pointer; transition:all .2s; }
+.btn-secondary:hover { border-color:var(--primary-light); color:var(--primary); }
+.btn-secondary.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.btn-danger { padding:8px 16px; background:#fff; border:2px solid var(--danger-bg); border-radius:8px; font-size:13px; font-weight:600; color:var(--danger); cursor:pointer; transition:all .2s; margin-left:8px; }
+.btn-danger:hover { border-color:var(--danger); background:var(--danger-bg); }
+.file-input { display:none; }
+
+/* Result */
+.result-section { display:none; }
+.result-section.show { display:block; }
+.result-main { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
+.result-card { background:#fff; border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); text-align:center; position:relative; border:2px solid transparent; }
+.result-card.final { border-color:var(--primary); background:linear-gradient(135deg,var(--primary-bg) 0%,#fff 100%); }
+.result-card.disabled { opacity:.5; background:var(--gray-50); }
+.result-card .label { font-size:13px; color:var(--gray-500); font-weight:500; margin-bottom:8px; }
+.result-card .price { font-size:32px; font-weight:800; color:var(--gray-800); font-variant-numeric:tabular-nums; }
+.result-card.final .price { color:var(--primary); }
+.result-card .price .yen { font-size:18px; font-weight:600; }
+.result-card .sub { font-size:12px; color:var(--gray-400); margin-top:4px; }
+.result-card .no-quote { font-size:20px; color:var(--gray-400); font-weight:600; padding:12px 0; }
+.result-card .badge { position:absolute; top:-10px; right:16px; background:var(--primary); color:#fff; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:700; }
+.adjust-tag { display:inline-block; padding:1px 6px; border-radius:4px; font-size:11px; font-weight:600; margin-left:6px; }
+.adjust-tag.floor { background:var(--warning-bg); color:var(--warning); }
+.adjust-tag.ceil { background:var(--success-bg); color:var(--success); }
+.match-tag { display:inline-block; padding:1px 6px; border-radius:4px; font-size:11px; font-weight:600; margin-left:6px; background:rgba(124,58,237,.1); color:#7C3AED; }
+
+/* Breakdown */
+.breakdown-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.breakdown-panel { background:var(--gray-50); border-radius:10px; padding:20px; border:1px solid var(--gray-200); }
+.breakdown-panel h3 { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.breakdown-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:13px; border-bottom:1px dashed var(--gray-200); }
+.breakdown-row:last-child { border-bottom:none; }
+.breakdown-row .desc { color:var(--gray-500); }
+.breakdown-row .val { font-weight:600; color:var(--gray-700); font-variant-numeric:tabular-nums; }
+.breakdown-row.adjust-floor .desc { color:var(--warning); font-weight:600; }
+.breakdown-row.adjust-floor .val { color:var(--warning); }
+.breakdown-row.adjust-ceil .desc { color:var(--success); font-weight:600; }
+.breakdown-row.adjust-ceil .val { color:var(--success); }
+.breakdown-row.total { border-top:2px solid var(--gray-300); border-bottom:none; margin-top:8px; padding-top:12px; }
+.breakdown-row.total .desc { font-weight:700; color:var(--gray-700); }
+.breakdown-row.total .val { font-weight:800; font-size:16px; color:var(--primary); }
+.no-quote-tip { text-align:center; color:var(--gray-400); padding:30px 0; font-size:13px; }
+
+/* ========== Summary Board ========== */
+.summary-board { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.summary-item { padding:16px; border-radius:10px; text-align:center; border:1px solid var(--gray-200); }
+.summary-item.best { background:var(--success-bg); border-color:#A7F3D0; }
+.summary-item.worst { background:var(--danger-bg); border-color:#FECACA; }
+.summary-item.median { background:var(--primary-bg); border-color:#BFDBFE; }
+.summary-item.avg { background:var(--warning-bg); border-color:#FDE68A; }
+.summary-item .si-label { font-size:12px; color:var(--gray-500); font-weight:500; margin-bottom:4px; }
+.summary-item .si-value { font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; }
+.summary-item.best .si-value { color:var(--success); }
+.summary-item.worst .si-value { color:var(--danger); }
+.summary-item.median .si-value { color:var(--primary); }
+.summary-item.avg .si-value { color:var(--warning); }
+.summary-item .si-name { font-size:11px; color:var(--gray-400); margin-top:2px; }
+
+/* ========== Compare Controls ========== */
+.compare-controls { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+.search-wrap { flex:1; min-width:200px; }
+.search-wrap input { width:100%; padding:10px 16px; border:2px solid var(--gray-200); border-radius:10px; font-size:14px; outline:none; transition:border-color .2s; }
+.search-wrap input:focus { border-color:var(--primary-light); box-shadow:0 0 0 3px rgba(59,130,246,.1); }
+.control-btns { display:flex; gap:8px; }
+
+/* ========== Scope Selector (grouped) ========== */
+.scope-group { margin-bottom:12px; }
+.scope-group-header { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--gray-50); border-radius:8px; cursor:pointer; user-select:none; transition:background .15s; }
+.scope-group-header:hover { background:var(--gray-100); }
+.scope-group-header .arrow { font-size:12px; color:var(--gray-400); transition:transform .2s; width:16px; text-align:center; }
+.scope-group-header .arrow.collapsed { transform:rotate(-90deg); }
+.scope-group-header .group-name { font-size:13px; font-weight:700; color:var(--gray-700); }
+.scope-group-header .group-count { font-size:11px; color:var(--gray-400); background:var(--gray-200); padding:1px 8px; border-radius:999px; }
+.scope-group-header .group-check { margin-left:auto; }
+.scope-group-body { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:6px; padding:8px 0 4px 12px; }
+.scope-group-body.collapsed { display:none; }
+.scope-chip { padding:6px 12px; border-radius:8px; border:1.5px solid var(--gray-200); background:#fff; font-size:12px; font-weight:600; cursor:pointer; transition:all .15s; user-select:none; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.scope-chip:hover { border-color:var(--primary-light); }
+.scope-chip.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+.scope-chip.filtered-out { display:none; }
+
+/* ========== Scope Selector (矩阵筛选器) ========== */
+.scope-selector { background:#fff; border:1px solid var(--gray-200); border-radius:12px; margin-bottom:16px; overflow:hidden; }
+.scope-selector-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--gray-50); border-bottom:1px solid var(--gray-100); flex-wrap:wrap; gap:8px; }
+.scope-selector-title { font-size:13px; font-weight:700; color:var(--gray-700); white-space:nowrap; }
+.scope-selector-tools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.scope-search { padding:6px 10px; border:1px solid var(--gray-200); border-radius:6px; font-size:12px; width:180px; outline:none; transition:border-color .15s; }
+.scope-search:focus { border-color:var(--primary); }
+.btn-sm { padding:4px 10px !important; font-size:11px !important; border-radius:6px !important; }
+.scope-selector-body { padding:10px 14px 6px; max-height:320px; overflow-y:auto; }
+
+/* ========== Compare Table (色阶) ========== */
+.compare-table-wrap { overflow-x:auto; }
+.compare-table { width:100%; border-collapse:collapse; font-size:14px; }
+.compare-table th { padding:12px 14px; background:var(--gray-50); text-align:left; font-size:12px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:.5px; border-bottom:2px solid var(--gray-200); white-space:nowrap; cursor:pointer; user-select:none; }
+.compare-table th:hover { color:var(--primary); }
+.compare-table th .sort-arrow { font-size:10px; margin-left:4px; }
+.compare-table td { padding:12px 14px; border-bottom:1px solid var(--gray-100); font-variant-numeric:tabular-nums; }
+.compare-table .region-name { font-weight:700; color:var(--gray-800); }
+.compare-table .no-data { color:var(--gray-400); font-style:italic; }
+.compare-table .best { color:var(--success); font-weight:700; }
+.compare-table .worst { color:var(--danger); font-weight:700; }
+/* 色阶行 */
+.compare-table tr.heat-1 { background:rgba(5,150,105,.06); }
+.compare-table tr.heat-2 { background:rgba(5,150,105,.12); }
+.compare-table tr.heat-3 { background:rgba(5,150,105,.18); }
+.compare-table tr.heat-4 { background:rgba(217,119,6,.10); }
+.compare-table tr.heat-5 { background:rgba(220,38,38,.08); }
+.compare-table tr.heat-6 { background:rgba(220,38,38,.14); }
+.compare-table tr.heat-7 { background:rgba(220,38,38,.20); }
+
+/* 折叠控制 */
+.collapse-toggle { text-align:center; padding:12px; }
+.collapse-toggle button { padding:8px 24px; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:8px; font-size:13px; color:var(--gray-600); cursor:pointer; font-weight:600; transition:all .15s; }
+.collapse-toggle button:hover { background:var(--gray-100); }
+
+/* ========== Bar Visual ========== */
+.bar-visual { margin-top:20px; }
+.bar-item { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.bar-name { width:100px; font-size:13px; font-weight:600; text-align:right; flex-shrink:0; color:var(--gray-700); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bar-track { flex:1; height:28px; background:var(--gray-100); border-radius:6px; overflow:hidden; position:relative; }
+.bar-fill { height:100%; border-radius:6px; display:flex; align-items:center; padding-left:10px; font-size:12px; font-weight:700; color:#fff; transition:width .6s cubic-bezier(.4,0,.2,1); min-width:60px; }
+.bar-price { width:80px; font-size:14px; font-weight:700; flex-shrink:0; color:var(--gray-700); }
+
+/* Savings Tip */
+.savings-tip { margin-top:16px; padding:16px; background:var(--success-bg); border-radius:10px; border:1px solid #A7F3D0; font-size:14px; }
+
+/* ========== 费率矩阵 ========== */
+.matrix-section { margin-bottom:24px; }
+.matrix-title { font-size:14px; font-weight:700; color:var(--gray-700); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.matrix-wrap { overflow-x:auto; border:1px solid var(--gray-200); border-radius:10px; }
+.matrix-table { width:100%; border-collapse:collapse; font-size:13px; }
+.matrix-table th { padding:10px 12px; background:var(--gray-50); text-align:center; font-weight:700; color:var(--gray-600); border-bottom:2px solid var(--gray-200); font-size:12px; white-space:nowrap; position:sticky; top:0; z-index:1; }
+.matrix-table th:first-child { text-align:left; position:sticky; left:0; z-index:2; background:var(--gray-50); }
+.matrix-table th.sortable { cursor:pointer; user-select:none; }
+.matrix-table th.sortable:hover { color:var(--primary); background:var(--primary-bg); }
+.matrix-table th .sort-ind { font-size:10px; margin-left:2px; color:var(--gray-400); }
+.matrix-table th .sort-ind.active { color:var(--primary); }
+.matrix-table td { padding:10px 12px; border-bottom:1px solid var(--gray-100); text-align:center; color:var(--gray-600); font-variant-numeric:tabular-nums; }
+.matrix-table td:first-child { text-align:left; font-weight:700; color:var(--gray-800); white-space:nowrap; position:sticky; left:0; background:#fff; z-index:1; }
+.matrix-table tr { cursor:pointer; transition:background .15s; }
+.matrix-table tr:hover { background:var(--primary-bg); }
+.matrix-table tr:hover td:first-child { background:var(--primary-bg); }
+.matrix-table tr.expanded { background:var(--primary-bg); }
+.matrix-table tr.expanded td:first-child { background:var(--primary-bg); }
+/* 矩阵内色阶 */
+.matrix-table td.cell-best { background:rgba(5,150,105,.10); color:var(--success); font-weight:700; }
+.matrix-table td.cell-worst { background:rgba(220,38,38,.08); color:var(--danger); }
+.matrix-table .expand-detail { background:var(--gray-50); }
+.matrix-table .expand-detail td { padding:16px 20px; text-align:left; }
+.detail-inner { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.detail-panel { background:#fff; border-radius:8px; padding:14px; border:1px solid var(--gray-200); }
+.detail-panel h4 { font-size:13px; font-weight:700; margin-bottom:10px; color:var(--gray-700); }
+.detail-tier { display:flex; justify-content:space-between; padding:5px 0; font-size:12px; border-bottom:1px dashed var(--gray-200); }
+.detail-tier:last-child { border-bottom:none; }
+.detail-tier .dt-desc { color:var(--gray-500); }
+.detail-tier .dt-val { font-weight:600; color:var(--gray-700); }
+.detail-tier .dt-val.highlight { color:var(--primary); font-weight:700; }
+.detail-tier .dt-val.match-mode { color:#7C3AED; font-weight:700; }
+.match-badge { display:inline-block; padding:1px 8px; border-radius:4px; font-size:11px; font-weight:700; background:rgba(124,58,237,.1); color:#7C3AED; margin-left:6px; }
+.tiered-badge { display:inline-block; padding:1px 8px; border-radius:4px; font-size:11px; font-weight:700; background:rgba(37,99,235,.1); color:var(--primary); margin-left:6px; }
+
+/* 匹配模式示例计算中间步骤 */
+.sample-block { padding:8px 0; border-bottom:1px dashed var(--gray-200); }
+.sample-block:last-child { border-bottom:none; }
+.sample-header { font-size:13px; font-weight:700; color:var(--gray-700); margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+.sample-header .sample-input { color:#7C3AED; }
+.sample-step { font-size:11px; color:var(--gray-500); padding:1px 0 1px 16px; line-height:1.6; }
+.sample-step .step-tier { color:#7C3AED; font-weight:600; }
+.sample-step .step-calc { color:var(--gray-700); font-weight:600; font-variant-numeric:tabular-nums; }
+.sample-step .step-adjust { font-weight:600; }
+.sample-step .step-adjust.floor { color:var(--warning); }
+.sample-step .step-adjust.ceil { color:var(--success); }
+.sample-final { font-size:12px; font-weight:700; color:#7C3AED; padding:1px 0 1px 16px; }
+.floor-ceil-info { margin-top:8px; padding:8px 10px; background:rgba(124,58,237,.04); border-radius:6px; border:1px solid rgba(124,58,237,.12); }
+.floor-ceil-info .detail-tier { padding:3px 0; }
+
+.rule-toggle { font-size:13px; color:var(--primary); cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px; margin-left:auto; }
+.rule-toggle:hover { text-decoration:underline; }
+.rule-content { display:none; padding:24px; }
+.rule-content.show { display:block; }
+.rule-filter-tip { padding:12px 16px; background:var(--primary-bg); border-radius:8px; font-size:13px; font-weight:600; color:var(--primary-dark); margin-bottom:16px; }
+
+.import-tip { padding:12px 16px; background:var(--primary-bg); border-radius:8px; font-size:13px; color:var(--primary-dark); margin-bottom:16px; line-height:1.6; }
+.import-tip a { color:var(--primary); font-weight:600; margin-left:8px; }
+.status-text { font-size:13px; color:var(--gray-500); flex:1; }
+
+@media (max-width:768px) {
+  .input-grid { grid-template-columns:1fr; }
+  .result-main { grid-template-columns:1fr; }
+  .breakdown-grid { grid-template-columns:1fr; }
+  .summary-board { grid-template-columns:1fr 1fr; }
+  .detail-inner { grid-template-columns:1fr; }
+}
+
+.fade-in { animation:fadeIn .3s ease-out; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <h1>外请固定报价查询系统</h1>
+    <p>区间累加/匹配计费 · 费率矩阵 · 色阶对比 · 智能分组</p>
+    <div class="header-tags">
+      <span class="header-tag">📦 按重量计费</span>
+      <span class="header-tag">🛣️ 按里程计费</span>
+      <span class="header-tag">📉 保底封顶（累加模式）</span>
+      <span class="header-tag">🎯 区间匹配（匹配模式）</span>
+      <span class="header-tag">⚖️ 取大值结算</span>
+      <span class="header-tag">📊 费率矩阵</span>
+      <span class="header-tag">📁 报价表导入</span>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <!-- 运费查询 -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📋 运费查询</h2>
+      <span class="status-text" id="ruleStatus">加载中...</span>
+    </div>
+    <div class="card-body">
+      <div class="input-grid">
+        <div class="input-group">
+          <label>燃油类型</label>
+          <select id="fuelType"></select>
+        </div>
+        <div class="input-group">
+          <label>车型</label>
+          <select id="vehicleType"></select>
+        </div>
+        <div class="input-group">
+          <label>车长 <span class="unit">(m)</span></label>
+          <select id="vehicleLength"></select>
+        </div>
+      </div>
+      <div class="input-grid" style="margin-top:16px">
+        <div class="input-group">
+          <label>适用范围</label>
+          <select id="scope"></select>
+        </div>
+        <div class="input-group">
+          <label>货物重量 <span class="unit">(kg)</span></label>
+          <div class="input-row">
+            <input type="number" id="weight" placeholder="输入重量" min="0">
+            <span class="input-suffix">kg</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>运输里程 <span class="unit">(km)</span></label>
+          <div class="input-row">
+            <input type="number" id="distance" placeholder="输入里程" min="0">
+            <span class="input-suffix">km</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn-calc" id="btnCalc">🔍 计算运费</button>
+    </div>
+  </div>
+
+  <!-- 结算结果 -->
+  <div class="card result-section" id="resultSection">
+    <div class="card-header"><h2>⚖️ 结算结果</h2></div>
+    <div class="card-body">
+      <div class="result-main">
+        <div class="result-card" id="weightCard">
+          <div class="label" id="weightLabel">📦 重量计费</div>
+          <div id="weightPriceWrap"><div class="price"><span class="yen">¥</span><span>0</span></div></div>
+          <div class="sub" id="weightSub"></div>
+        </div>
+        <div class="result-card" id="distCard">
+          <div class="label" id="distLabel">🛣️ 里程计费</div>
+          <div id="distPriceWrap"><div class="price"><span class="yen">¥</span><span>0</span></div></div>
+          <div class="sub" id="distSub"></div>
+        </div>
+        <div class="result-card final">
+          <div class="badge">最终运费</div>
+          <div class="label">⚖️ 结算结果</div>
+          <div class="price"><span class="yen">¥</span><span id="finalPrice">0</span></div>
+          <div class="sub" id="finalSub"></div>
+        </div>
+      </div>
+      <div class="breakdown-grid">
+        <div class="breakdown-panel">
+          <h3 id="weightBreakdownTitle">📦 按重量计费明细</h3>
+          <div id="weightBreakdown"></div>
+        </div>
+        <div class="breakdown-panel">
+          <h3 id="distBreakdownTitle">🛣️ 按里程计费明细</h3>
+          <div id="distBreakdown"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 适用范围价格对比 -->
+  <div class="card">
+    <div class="card-header">
+      <h2>⚖️ 适用范围价格对比</h2>
+      <span id="matchModeHint" style="font-size:12px;color:#7C3AED;display:none"></span>
+    </div>
+    <div class="card-body">
+      <div id="summaryBoard" class="summary-board"></div>
+      <div class="compare-controls">
+        <div class="search-wrap">
+          <input type="text" id="scopeSearch" placeholder="🔍 搜索适用范围...">
+        </div>
+        <div class="control-btns">
+          <button class="btn-secondary" id="btnSelectAll">全选</button>
+          <button class="btn-secondary" id="btnGroupMode">分组折叠</button>
+        </div>
+      </div>
+      <div id="regionSelector"></div>
+      <div id="compareResult"></div>
+    </div>
+  </div>
+
+  <!-- 计价规则 -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📖 计价规则（费率矩阵）</h2>
+      <span class="rule-toggle" id="ruleToggle">展开查看 ▼</span>
+    </div>
+    <div class="rule-content" id="ruleContent"></div>
+  </div>
+
+  <!-- 报价规则管理 -->
+  <div class="card">
+    <div class="card-header"><h2>📁 报价规则管理</h2></div>
+    <div class="card-body">
+      <div class="import-tip">
+        💡 提示：支持两种计费模式——累加模式（含起步价/保底/封顶）和匹配模式（区间内数据×该区间费率）。<br>
+        CSV表头新增「区域」和「计费模式」列，详见模板。
+        <a href="javascript:void(0)" id="btnDownloadTpl">下载标准模板</a>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-secondary" id="btnImport">📥 导入CSV报价表</button>
+        <button class="btn-secondary" id="btnExport">📤 导出当前规则</button>
+        <button class="btn-danger" id="btnReset">↺ 恢复默认</button>
+      </div>
+      <input type="file" id="importFile" class="file-input" accept=".csv,.txt">
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+'use strict';
+
+// ========== 默认规则（18条，含华东/华南/华北/西南/西北/东北区域，含2条匹配模式） ==========
+var defaultRules = [
+  // ---- 华东区域（累加模式）----
+  mk('HT-HD-001','燃油','厢式车',4.2,'洞庭取派部','华东区域','按公里','tiered',
+    {base:140,baseAmount:10,floorPrice:120,ceilPrice:500,tiers:[{from:10,to:30,rate:4.3},{from:30,to:50,rate:4.1},{from:50,to:100,rate:4.0},{from:100,to:Infinity,rate:3.5}]},
+    {base:140,baseAmount:10,tiers:[{from:10,to:30,rate:4.3},{from:30,to:50,rate:4.1},{from:50,to:100,rate:4.0},{from:100,to:Infinity,rate:3.5}]}),
+  mk('HT-HD-002','电动','厢式车',4.2,'洞庭取派部','华东区域','按公里','tiered',
+    {base:135,baseAmount:10,floorPrice:110,ceilPrice:480,tiers:[{from:10,to:30,rate:4.1},{from:30,to:50,rate:4.0},{from:50,to:100,rate:3.8},{from:100,to:Infinity,rate:3.2}]},
+    {base:135,baseAmount:10,tiers:[{from:10,to:30,rate:4.1},{from:30,to:50,rate:4.0},{from:50,to:100,rate:3.8},{from:100,to:Infinity,rate:3.2}]}),
+  mk('HT-HD-003','燃油','厢式车',4.2,'长沙枢纽','华东区域','按公里','tiered',
+    {base:130,baseAmount:10,floorPrice:100,ceilPrice:460,tiers:[{from:10,to:30,rate:4.0},{from:30,to:50,rate:3.8},{from:50,to:100,rate:3.6},{from:100,to:Infinity,rate:3.2}]},
+    {base:130,baseAmount:10,tiers:[{from:10,to:30,rate:4.0},{from:30,to:50,rate:3.8},{from:50,to:100,rate:3.6},{from:100,to:Infinity,rate:3.2}]}),
+  mk('HT-HD-004','燃油','厢式车',4.2,'武汉分拨中心','华东区域','按公里','tiered',
+    {base:155,baseAmount:10,floorPrice:130,ceilPrice:550,tiers:[{from:10,to:30,rate:4.8},{from:30,to:50,rate:4.5},{from:50,to:100,rate:4.2},{from:100,to:Infinity,rate:3.8}]},
+    {base:155,baseAmount:10,tiers:[{from:10,to:30,rate:4.8},{from:30,to:50,rate:4.5},{from:50,to:100,rate:4.2},{from:100,to:Infinity,rate:3.8}]}),
+  mk('HT-HD-005','燃油','厢式车',4.2,'合肥仓配站','华东区域','按公里','tiered',
+    {base:125,baseAmount:10,floorPrice:100,ceilPrice:440,tiers:[{from:10,to:30,rate:3.8},{from:30,to:50,rate:3.6},{from:50,to:100,rate:3.4},{from:100,to:Infinity,rate:3.0}]},
+    {base:125,baseAmount:10,tiers:[{from:10,to:30,rate:3.8},{from:30,to:50,rate:3.6},{from:50,to:100,rate:3.4},{from:100,to:Infinity,rate:3.0}]}),
+  // ---- 华南区域（累加模式）----
+  mk('HT-HN-001','燃油','厢式车',4.2,'广州集散中心','华南区域','按公里','tiered',
+    {base:150,baseAmount:10,floorPrice:125,ceilPrice:520,tiers:[{from:10,to:30,rate:4.5},{from:30,to:50,rate:4.3},{from:50,to:100,rate:4.0},{from:100,to:Infinity,rate:3.6}]},
+    {base:150,baseAmount:10,tiers:[{from:10,to:30,rate:4.5},{from:30,to:50,rate:4.3},{from:50,to:100,rate:4.0},{from:100,to:Infinity,rate:3.6}]}),
+  mk('HT-HN-002','电动','厢式车',4.2,'广州集散中心','华南区域','按公里','tiered',
+    {base:142,baseAmount:10,floorPrice:118,ceilPrice:500,tiers:[{from:10,to:30,rate:4.2},{from:30,to:50,rate:4.0},{from:50,to:100,rate:3.8},{from:100,to:Infinity,rate:3.3}]},
+    {base:142,baseAmount:10,tiers:[{from:10,to:30,rate:4.2},{from:30,to:50,rate:4.0},{from:50,to:100,rate:3.8},{from:100,to:Infinity,rate:3.3}]}),
+  mk('HT-HN-003','燃油','厢式车',4.2,'深圳转运站','华南区域','按公里','tiered',
+    {base:160,baseAmount:10,floorPrice:135,ceilPrice:560,tiers:[{from:10,to:30,rate:5.0},{from:30,to:50,rate:4.7},{from:50,to:100,rate:4.4},{from:100,to:Infinity,rate:3.9}]},
+    {base:160,baseAmount:10,tiers:[{from:10,to:30,rate:5.0},{from:30,to:50,rate:4.7},{from:50,to:100,rate:4.4},{from:100,to:Infinity,rate:3.9}]}),
+  // ---- 华北区域（累加模式）----
+  mk('HT-HB-001','燃油','厢式车',4.2,'北京调度中心','华北区域','按公里','tiered',
+    {base:148,baseAmount:10,floorPrice:120,ceilPrice:530,tiers:[{from:10,to:30,rate:4.6},{from:30,to:50,rate:4.3},{from:50,to:100,rate:4.0},{from:100,to:Infinity,rate:3.5}]},
+    {base:148,baseAmount:10,tiers:[{from:10,to:30,rate:4.6},{from:30,to:50,rate:4.3},{from:50,to:100,rate:4.0},{from:100,to:Infinity,rate:3.5}]}),
+  mk('HT-HB-002','燃油','厢式车',4.2,'天津港口站','华北区域','按公里','tiered',
+    {base:138,baseAmount:10,floorPrice:110,ceilPrice:490,tiers:[{from:10,to:30,rate:4.2},{from:30,to:50,rate:4.0},{from:50,to:100,rate:3.7},{from:100,to:Infinity,rate:3.3}]},
+    {base:138,baseAmount:10,tiers:[{from:10,to:30,rate:4.2},{from:30,to:50,rate:4.0},{from:50,to:100,rate:3.7},{from:100,to:Infinity,rate:3.3}]}),
+  mk('HT-HB-003','电动','厢式车',4.2,'北京调度中心','华北区域','按公里','tiered',
+    {base:140,baseAmount:10,floorPrice:115,ceilPrice:510,tiers:[{from:10,to:30,rate:4.3},{from:30,to:50,rate:4.1},{from:50,to:100,rate:3.8},{from:100,to:Infinity,rate:3.3}]},
+    {base:140,baseAmount:10,tiers:[{from:10,to:30,rate:4.3},{from:30,to:50,rate:4.1},{from:50,to:100,rate:3.8},{from:100,to:Infinity,rate:3.3}]}),
+  // ---- 西南区域（累加模式）----
+  mk('HT-XN-001','燃油','厢式车',4.2,'成都集散中心','西南区域','按公里','tiered',
+    {base:170,baseAmount:10,floorPrice:145,ceilPrice:600,tiers:[{from:10,to:30,rate:5.2},{from:30,to:50,rate:4.9},{from:50,to:100,rate:4.5},{from:100,to:Infinity,rate:4.0}]},
+    {base:170,baseAmount:10,tiers:[{from:10,to:30,rate:5.2},{from:30,to:50,rate:4.9},{from:50,to:100,rate:4.5},{from:100,to:Infinity,rate:4.0}]}),
+  mk('HT-XN-002','燃油','厢式车',4.2,'重庆转运站','西南区域','按公里','tiered',
+    {base:165,baseAmount:10,floorPrice:140,ceilPrice:580,tiers:[{from:10,to:30,rate:5.0},{from:30,to:50,rate:4.7},{from:50,to:100,rate:4.3},{from:100,to:Infinity,rate:3.8}]},
+    {base:165,baseAmount:10,tiers:[{from:10,to:30,rate:5.0},{from:30,to:50,rate:4.7},{from:50,to:100,rate:4.3},{from:100,to:Infinity,rate:3.8}]}),
+  mk('HT-XN-003','电动','厢式车',4.2,'成都集散中心','西南区域','按公里','tiered',
+    {base:160,baseAmount:10,floorPrice:135,ceilPrice:570,tiers:[{from:10,to:30,rate:4.8},{from:30,to:50,rate:4.5},{from:50,to:100,rate:4.2},{from:100,to:Infinity,rate:3.7}]},
+    {base:160,baseAmount:10,tiers:[{from:10,to:30,rate:4.8},{from:30,to:50,rate:4.5},{from:50,to:100,rate:4.2},{from:100,to:Infinity,rate:3.7}]}),
+  // ---- 西北/东北区域（累加模式）----
+  mk('HT-XB-001','燃油','厢式车',4.2,'西安中转站','西北区域','按公里','tiered',
+    {base:175,baseAmount:10,floorPrice:150,ceilPrice:620,tiers:[{from:10,to:30,rate:5.5},{from:30,to:50,rate:5.1},{from:50,to:100,rate:4.7},{from:100,to:Infinity,rate:4.2}]},
+    {base:175,baseAmount:10,tiers:[{from:10,to:30,rate:5.5},{from:30,to:50,rate:5.1},{from:50,to:100,rate:4.7},{from:100,to:Infinity,rate:4.2}]}),
+  mk('HT-DB-001','燃油','厢式车',4.2,'沈阳调度站','东北区域','按公里','tiered',
+    {base:168,baseAmount:10,floorPrice:140,ceilPrice:590,tiers:[{from:10,to:30,rate:5.3},{from:30,to:50,rate:5.0},{from:50,to:100,rate:4.6},{from:100,to:Infinity,rate:4.1}]},
+    {base:168,baseAmount:10,tiers:[{from:10,to:30,rate:5.3},{from:30,to:50,rate:5.0},{from:50,to:100,rate:4.6},{from:100,to:Infinity,rate:4.1}]}),
+  // ---- 匹配模式规则 ----
+  mk('HT-HD-M01','燃油','平板车',6.8,'洞庭取派部','华东区域','按公里','match',
+    {calcMode:'match',floorPrice:300,ceilPrice:2000,tiers:[{from:0,to:500,rate:6.5},{from:500,to:2000,rate:5.8},{from:2000,to:5000,rate:5.0},{from:5000,to:Infinity,rate:4.2}]},
+    {calcMode:'match',tiers:[{from:0,to:50,rate:12},{from:50,to:200,rate:10},{from:200,to:500,rate:8},{from:500,to:Infinity,rate:6}]}),
+  mk('HT-HN-M01','燃油','平板车',6.8,'广州集散中心','华南区域','按公里','match',
+    {calcMode:'match',floorPrice:350,ceilPrice:2200,tiers:[{from:0,to:500,rate:7.0},{from:500,to:2000,rate:6.2},{from:2000,to:5000,rate:5.5},{from:5000,to:Infinity,rate:4.5}]},
+    {calcMode:'match',tiers:[{from:0,to:50,rate:13},{from:50,to:200,rate:11},{from:200,to:500,rate:9},{from:500,to:Infinity,rate:7}]})
+];
+
+// mk工厂函数: code, fuel, vtype, vlen, scope, region, calcType, calcMode, weightRule, mileageRule
+function mk(code,fuel,vtype,vlen,scope,region,calcType,calcMode,wr,mr) {
+  return {'报价编码':code,'燃油类型':fuel,'车型':vtype,'车长':vlen,'适用范围':scope,'区域':region,'计价方式':calcType,
+    weightRule:JSON.parse(JSON.stringify(wr)),mileageRule:JSON.parse(JSON.stringify(mr))};
+}
+
+// 适用范围→分组映射（优先从规则的'区域'字段读取，兜底用正则）
+var scopeGroupMap = {};
+function buildScopeGroupMap() {
+  scopeGroupMap = {};
+  ruleList.forEach(function(r) {
+    var s = r['适用范围'];
+    var g = r['区域'] || '';
+    if (!scopeGroupMap[s]) scopeGroupMap[s] = g;
+  });
+  // 兜底：仍保留正则逻辑
+  var allScopes = [];
+  ruleList.forEach(function(r) { if (allScopes.indexOf(r['适用范围']) === -1) allScopes.push(r['适用范围']); });
+  allScopes.forEach(function(s) {
+    if (scopeGroupMap[s]) return;
+    if (/洞庭|长沙|武汉|合肥|南京|杭州|上海|苏州/.test(s)) scopeGroupMap[s] = '华东区域';
+    else if (/广州|深圳|东莞|佛山|厦门|福州/.test(s)) scopeGroupMap[s] = '华南区域';
+    else if (/北京|天津|石家庄|济南|青岛|郑州/.test(s)) scopeGroupMap[s] = '华北区域';
+    else if (/成都|重庆|昆明|贵阳|南宁/.test(s)) scopeGroupMap[s] = '西南区域';
+    else if (/西安|兰州|乌鲁木齐|银川/.test(s)) scopeGroupMap[s] = '西北区域';
+    else if (/沈阳|大连|长春|哈尔滨/.test(s)) scopeGroupMap[s] = '东北区域';
+    else scopeGroupMap[s] = '其他';
+  });
+}
+
+var ruleList = [];
+var selectedScopes = new Set();
+var groupCollapsed = {};
+var groupMode = false;
+var compareSortCol = null;
+var compareSortDir = 'asc';
+var matrixSortCol = null;
+var matrixSortDir = 'asc';
+var expandedRows = new Set();
+var matrixSearchQuery = '';
+var matrixSelectedRegions = new Set();
+var matrixSelectedScopes = new Set();
+var matrixScopeSearch = '';
+var matrixModeFilter = 'all';
+var matrixSearchTimer = null;
+var matrixScopesInited = false;
+var matrixRemovedScopes = new Set();
+
+// ========== 初始化 ==========
+function initRules() {
+  var saved = localStorage.getItem('logistics_rules_v5');
+  var loaded = false;
+  if (saved) {
+    try {
+      var parsed = JSON.parse(saved);
+      if (validateRules(parsed)) {
+        ruleList = parsed;
+        ruleList.forEach(function(rule) {
+          if (rule.weightRule && rule.weightRule.tiers) rule.weightRule.tiers.forEach(function(t) { if (t.to === 99999) t.to = Infinity; });
+          if (rule.mileageRule && rule.mileageRule.tiers) rule.mileageRule.tiers.forEach(function(t) { if (t.to === 99999) t.to = Infinity; });
+          if (!rule.weightRule.calcMode) rule.weightRule.calcMode = 'tiered';
+          if (!rule.mileageRule.calcMode) rule.mileageRule.calcMode = 'tiered';
+          if (rule.weightRule && typeof rule.weightRule.floorPrice !== 'number') rule.weightRule.floorPrice = 0;
+          if (rule.weightRule && typeof rule.weightRule.ceilPrice !== 'number') rule.weightRule.ceilPrice = 0;
+        });
+        loaded = true;
+        var matchCount = ruleList.filter(function(r){ return (r.weightRule&&r.weightRule.calcMode==='match')||(r.mileageRule&&r.mileageRule.calcMode==='match'); }).length;
+        var statusText = '当前使用自定义报价规则（本地缓存），共 ' + ruleList.length + ' 条';
+        if (matchCount > 0) statusText += '，其中 ' + matchCount + ' 条含匹配模式';
+        document.getElementById('ruleStatus').textContent = statusText;
+      }
+    } catch(e) { console.warn('缓存损坏'); }
+  }
+  if (!loaded) {
+    ruleList = JSON.parse(JSON.stringify(defaultRules));
+    localStorage.removeItem('logistics_rules_v5');
+    document.getElementById('ruleStatus').textContent = '当前使用内置默认报价规则，共 ' + ruleList.length + ' 条';
+  }
+  buildScopeGroupMap();
+  initFilterOptions();
+  initScopeSelector();
+  calculate();
+}
+
+function validateRules(rules) {
+  if (!Array.isArray(rules) || rules.length === 0) return false;
+  for (var i = 0; i < rules.length; i++) {
+    var r = rules[i];
+    if (!r['燃油类型'] || !r['车型'] || !r['车长'] || !r['适用范围']) return false;
+    var hw = r.weightRule && Array.isArray(r.weightRule.tiers) && r.weightRule.tiers.length > 0;
+    var hm = r.mileageRule && Array.isArray(r.mileageRule.tiers) && r.mileageRule.tiers.length > 0;
+    if (!hw && !hm) return false;
+  }
+  return true;
+}
+
+function initFilterOptions() {
+  var fuelTypes = unique(ruleList.map(function(r){return r['燃油类型'];}));
+  var vehicleTypes = unique(ruleList.map(function(r){return r['车型'];}));
+  var vehicleLengths = unique(ruleList.map(function(r){return r['车长'];})).sort(function(a,b){return a-b;});
+  var scopes = unique(ruleList.map(function(r){return r['适用范围'];}));
+  fillSelect('fuelType', fuelTypes);
+  fillSelect('vehicleType', vehicleTypes);
+  fillSelect('vehicleLength', vehicleLengths.map(function(l){return l+'m';}));
+  fillSelect('scope', scopes);
+  if (fuelTypes.length) document.getElementById('fuelType').value = fuelTypes[0];
+  if (vehicleTypes.length) document.getElementById('vehicleType').value = vehicleTypes[Math.min(0, vehicleTypes.length-1)];
+  if (vehicleLengths.length) document.getElementById('vehicleLength').value = vehicleLengths[Math.min(0, vehicleLengths.length-1)] + 'm';
+  if (scopes.length) document.getElementById('scope').value = scopes[0];
+  selectedScopes = new Set(scopes);
+}
+
+function fillSelect(id, options) {
+  var sel = document.getElementById(id);
+  sel.innerHTML = options.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
+}
+
+function unique(arr) { var s={}; var r=[]; arr.forEach(function(v){if(!s[v]){s[v]=1;r.push(v);}}); return r; }
+
+function updateFilterOptions() {
+  var ft = document.getElementById('fuelType').value;
+  var vt = document.getElementById('vehicleType').value;
+  var vl = parseFloat(document.getElementById('vehicleLength').value);
+  var filtered = ruleList.filter(function(r){return r['燃油类型']===ft && r['车型']===vt && r['车长']===vl;});
+  var scopes = unique(filtered.map(function(r){return r['适用范围'];}));
+  fillSelect('scope', scopes);
+  if (scopes.length) document.getElementById('scope').value = scopes[0];
+  selectedScopes = new Set(scopes);
+  initScopeSelector();
+  if (document.getElementById('ruleContent').classList.contains('show')) renderRules();
+}
+
+// ========== 计算引擎 ==========
+
+// 匹配模式计算：amount落在哪个区间 → amount × rate
+function calcMatchPrice(amount, tiers, unit) {
+  if (amount <= 0 || !tiers || tiers.length === 0) return {total:0, detail:[]};
+  for (var i = 0; i < tiers.length; i++) {
+    var tier = tiers[i];
+    // 区间 [from, to)，Infinity 用 Infinity 表示
+    if (amount >= tier.from && (tier.to === Infinity || amount < tier.to)) {
+      var total = amount * tier.rate;
+      var toL = tier.to === Infinity ? '∞' : tier.to;
+      return {
+        total: Math.round(total * 100) / 100,
+        detail: [{desc: tier.from + '-' + toL + ' ' + unit + '：' + amount + ' × ¥' + tier.rate.toFixed(2), amount: Math.round(total * 100) / 100}]
+      };
+    }
+  }
+  return {total: 0, detail: []};
+}
+
+// 累加模式计算（原有逻辑不变）
+function calcTierPrice(amount, baseFee, baseAmount, tiers, unit) {
+  var detail = [], total = 0;
+  if (amount <= 0) return {total:0,detail:[]};
+  if (amount <= baseAmount) {
+    detail.push({desc:'起步价（≤'+baseAmount+unit+'）',amount:baseFee});
+    return {total:baseFee,detail:detail};
+  }
+  detail.push({desc:'起步价（前'+baseAmount+unit+'）',amount:baseFee});
+  total += baseFee;
+  var remaining = amount - baseAmount;
+  for (var i = 0; i < tiers.length; i++) {
+    if (remaining <= 0) break;
+    var tier = tiers[i];
+    var tierSpan = tier.to === Infinity ? Infinity : (tier.to - tier.from);
+    var qty = tier.to === Infinity ? remaining : Math.min(remaining, tierSpan);
+    var cost = qty * tier.rate;
+    var fromL = tier.from;
+    var toL = tier.to === Infinity ? '∞' : tier.to;
+    detail.push({desc:fromL+'-'+toL+' '+unit+'：'+qty.toFixed(1)+' × ¥'+tier.rate.toFixed(2), amount:Math.round(cost*100)/100});
+    total += cost;
+    remaining -= qty;
+  }
+  return {total:Math.round(total*100)/100, detail:detail};
+}
+
+function calcWeightFinal(weight, rule) {
+  if (!rule.weightRule || rule.weightRule.tiers.length === 0) return {valid:false,finalTotal:0,detail:[],rawTotal:0,isMatch:false};
+  var isMatch = rule.weightRule.calcMode === 'match';
+
+  if (isMatch) {
+    var result = calcMatchPrice(weight, rule.weightRule.tiers, 'kg');
+    var floor = rule.weightRule.floorPrice || 0;
+    var ceil = rule.weightRule.ceilPrice || 0;
+    var ft = result.total;
+    var detail = result.detail.slice();
+    if (floor > 0 && result.total < floor) {
+      ft = floor;
+      detail.push({desc:'保底价补足（低于¥'+floor.toFixed(2)+'按保底计）',amount:Math.round((floor-result.total)*100)/100,type:'floor'});
+    } else if (ceil > 0 && result.total > ceil) {
+      ft = ceil;
+      detail.push({desc:'封顶价减免（高于¥'+ceil.toFixed(2)+'按封顶计）',amount:-Math.round((result.total-ceil)*100)/100,type:'ceil'});
+    }
+    return {valid:true,rawTotal:result.total,finalTotal:Math.round(ft*100)/100,detail:detail,hasFloor:floor>0&&result.total<floor,hasCeil:ceil>0&&result.total>ceil,isMatch:true,floorPrice:floor,ceilPrice:ceil};
+  }
+
+  // tiered累加模式
+  var raw = calcTierPrice(weight, rule.weightRule.base, rule.weightRule.baseAmount, rule.weightRule.tiers, 'kg');
+  var floor = rule.weightRule.floorPrice || 0;
+  var ceil = rule.weightRule.ceilPrice || 0;
+  var ft = raw.total;
+  var detail = raw.detail.slice();
+  if (floor > 0 && raw.total < floor) {
+    ft = floor;
+    detail.push({desc:'保底价补足（低于¥'+floor.toFixed(2)+'按保底计）',amount:Math.round((floor-raw.total)*100)/100,type:'floor'});
+  } else if (ceil > 0 && raw.total > ceil) {
+    ft = ceil;
+    detail.push({desc:'封顶价减免（高于¥'+ceil.toFixed(2)+'按封顶计）',amount:-Math.round((raw.total-ceil)*100)/100,type:'ceil'});
+  }
+  return {valid:true,rawTotal:raw.total,finalTotal:Math.round(ft*100)/100,detail:detail,hasFloor:floor>0&&raw.total<floor,hasCeil:ceil>0&&raw.total>ceil,isMatch:false,floorPrice:floor,ceilPrice:ceil};
+}
+
+function calcMileageFinal(distance, rule) {
+  if (!rule.mileageRule || rule.mileageRule.tiers.length === 0) return {valid:false,total:0,detail:[],isMatch:false};
+  var isMatch = rule.mileageRule.calcMode === 'match';
+
+  if (isMatch) {
+    var result = calcMatchPrice(distance, rule.mileageRule.tiers, 'km');
+    return {valid:true,total:result.total,detail:result.detail,isMatch:true};
+  }
+
+  var r = calcTierPrice(distance, rule.mileageRule.base, rule.mileageRule.baseAmount, rule.mileageRule.tiers, 'km');
+  return {valid:true,total:r.total,detail:r.detail,isMatch:false};
+}
+
+function calculate() {
+  var weight = parseFloat(document.getElementById('weight').value) || 0;
+  var distance = parseFloat(document.getElementById('distance').value) || 0;
+  var ft = document.getElementById('fuelType').value;
+  var vt = document.getElementById('vehicleType').value;
+  var vl = parseFloat(document.getElementById('vehicleLength').value);
+  var sc = document.getElementById('scope').value;
+  var rule = null;
+  for (var i = 0; i < ruleList.length; i++) {
+    var r = ruleList[i];
+    if (r['燃油类型']===ft && r['车型']===vt && r['车长']===vl && r['适用范围']===sc) { rule = r; break; }
+  }
+  if (!rule) { showAlert('未找到匹配的计价规则，请检查筛选条件'); return; }
+  var hasW = rule.weightRule && rule.weightRule.tiers.length > 0;
+  var hasM = rule.mileageRule && rule.mileageRule.tiers.length > 0;
+  if (!hasW && !hasM) { showAlert('当前适用范围无有效报价'); return; }
+
+  var wr = calcWeightFinal(weight, rule);
+  var dr = calcMileageFinal(distance, rule);
+
+  // 重量卡片label
+  var weightLabel = document.getElementById('weightLabel');
+  var distLabel = document.getElementById('distLabel');
+  if (wr.isMatch) {
+    var matchTag = '📦 重量计费（匹配模式）<span class="match-tag">🎯</span>';
+    if (wr.floorPrice > 0) matchTag += ' <span class="adjust-tag floor'+(wr.hasFloor?'':'')+'">保底¥'+wr.floorPrice.toFixed(2)+'</span>';
+    if (wr.ceilPrice > 0) matchTag += ' <span class="adjust-tag ceil'+(wr.hasCeil?'':'')+'">封顶¥'+wr.ceilPrice.toFixed(2)+'</span>';
+    weightLabel.innerHTML = matchTag;
+  } else {
+    weightLabel.innerHTML = '📦 重量计费（含保底封顶）<span class="tiered-badge">累加</span>';
+  }
+  if (dr.isMatch) {
+    distLabel.innerHTML = '🛣️ 里程计费（匹配模式）<span class="match-tag">🎯</span>';
+  } else {
+    distLabel.innerHTML = '🛣️ 里程计费<span class="tiered-badge">累加</span>';
+  }
+
+  // 重量卡片
+  var wc = document.getElementById('weightCard');
+  var wpw = document.getElementById('weightPriceWrap');
+  if (wr.valid && weight > 0) {
+    wc.classList.remove('disabled');
+    wpw.innerHTML = '<div class="price"><span class="yen">¥</span><span>'+wr.finalTotal.toFixed(2)+'</span></div>';
+    var wsub = weight+'kg → '+ft+' '+vt+' '+vl+'m';
+    if (wr.floorPrice > 0) wsub += ' <span class="adjust-tag floor">保底¥'+wr.floorPrice.toFixed(2)+'</span>';
+    if (wr.ceilPrice > 0) wsub += ' <span class="adjust-tag ceil">封顶¥'+wr.ceilPrice.toFixed(2)+'</span>';
+    document.getElementById('weightSub').innerHTML = wsub;
+  } else {
+    wc.classList.add('disabled');
+    wpw.innerHTML = '<div class="no-quote">无重量报价</div>';
+    document.getElementById('weightSub').textContent = '当前范围无重量计费规则';
+  }
+
+  // 里程卡片
+  var dc = document.getElementById('distCard');
+  var dpw = document.getElementById('distPriceWrap');
+  if (dr.valid && distance > 0) {
+    dc.classList.remove('disabled');
+    dpw.innerHTML = '<div class="price"><span class="yen">¥</span><span>'+dr.total.toFixed(2)+'</span></div>';
+    document.getElementById('distSub').textContent = distance+'km → '+ft+' '+vt+' '+vl+'m';
+  } else {
+    dc.classList.add('disabled');
+    dpw.innerHTML = '<div class="no-quote">无里程报价</div>';
+    document.getElementById('distSub').textContent = '当前范围无里程计费规则';
+  }
+
+  // 最终
+  var fp = 0, fs = '';
+  var wv = wr.valid ? wr.finalTotal : 0;
+  var dv = dr.valid ? dr.total : 0;
+  if (wr.valid && dr.valid && weight > 0 && distance > 0) {
+    fp = Math.max(wv, dv);
+    fs = wv >= dv ? '重量计费较高，按重量结算' : '里程计费较高，按里程结算';
+  } else if (wr.valid && weight > 0) { fp = wv; fs = '仅重量报价可用，按重量结算'; }
+  else if (dr.valid && distance > 0) { fp = dv; fs = '仅里程报价可用，按里程结算'; }
+  else { fp = 0; fs = '请输入有效数值'; }
+  document.getElementById('finalPrice').textContent = fp.toFixed(2);
+  document.getElementById('finalSub').textContent = fs;
+
+  // 面板标题
+  document.getElementById('weightBreakdownTitle').innerHTML = wr.isMatch
+    ? '📦 按重量计费明细（匹配模式）<span class="match-badge">🎯</span>'
+    : '📦 按重量计费明细（累加模式）<span class="tiered-badge">累加</span>';
+  document.getElementById('distBreakdownTitle').innerHTML = dr.isMatch
+    ? '🛣️ 按里程计费明细（匹配模式）<span class="match-badge">🎯</span>'
+    : '🛣️ 按里程计费明细（累加模式）<span class="tiered-badge">累加</span>';
+
+  renderWeightBreakdown(wr, weight > 0);
+  renderMileageBreakdown(dr, distance > 0);
+  document.getElementById('resultSection').classList.add('show');
+  updateCompare(weight, distance);
+}
+
+function showAlert(msg) { alert(msg); }
+
+function renderWeightBreakdown(result, hasInput) {
+  var el = document.getElementById('weightBreakdown');
+  if (!result.valid || !hasInput) { el.innerHTML = '<div class="no-quote-tip">当前范围无重量报价或未输入重量</div>'; return; }
+  var html = '';
+  result.detail.forEach(function(d) {
+    var cls = d.type==='floor' ? 'adjust-floor' : (d.type==='ceil' ? 'adjust-ceil' : (result.isMatch ? 'match-tier' : ''));
+    var valCls = d.type==='floor' ? ' style="color:var(--warning);font-weight:700"' : (d.type==='ceil' ? ' style="color:var(--success);font-weight:700"' : (result.isMatch ? ' style="color:#7C3AED;font-weight:700"' : ''));
+    html += '<div class="breakdown-row '+cls+'"><span class="desc">'+d.desc+'</span><span class="val"'+valCls+'>'+(d.amount>=0?'¥':'-¥')+Math.abs(d.amount).toFixed(2)+'</span></div>';
+  });
+  if (result.isMatch) {
+    html += '<div class="breakdown-row total"><span class="desc">合计（全额费率）</span><span class="val" style="color:#7C3AED;font-weight:800">¥'+result.finalTotal.toFixed(2)+'</span></div>';
+  } else {
+    html += '<div class="breakdown-row total"><span class="desc">合计</span><span class="val">¥'+result.finalTotal.toFixed(2)+'</span></div>';
+  }
+  // 展示保底价/封顶价参考信息（无论是否触发）
+  var fp = result.floorPrice || 0;
+  var cp = result.ceilPrice || 0;
+  if (fp > 0 || cp > 0) {
+    html += '<div style="margin-top:12px;padding:10px 12px;background:var(--gray-50);border-radius:8px;border:1px dashed var(--gray-200)">';
+    html += '<div style="font-size:11px;color:var(--gray-500);margin-bottom:6px;font-weight:600">💡 保底封顶参考</div>';
+    if (fp > 0) {
+      var floorTriggered = result.hasFloor;
+      html += '<div class="breakdown-row" style="border-bottom:1px dashed var(--gray-200);padding:4px 0"><span class="desc" style="font-size:12px">保底价'+(floorTriggered?' <span class="adjust-tag floor">已触发</span>':'')+'</span><span class="val" style="color:var(--warning);font-size:12px">¥'+fp.toFixed(2)+'</span></div>';
+    }
+    if (cp > 0) {
+      var ceilTriggered = result.hasCeil;
+      html += '<div class="breakdown-row" style="padding:4px 0"><span class="desc" style="font-size:12px">封顶价'+(ceilTriggered?' <span class="adjust-tag ceil">已触发</span>':'')+'</span><span class="val" style="color:var(--success);font-size:12px">¥'+cp.toFixed(2)+'</span></div>';
+    }
+    html += '</div>';
+  }
+  el.innerHTML = html;
+}
+
+function renderMileageBreakdown(result, hasInput) {
+  var el = document.getElementById('distBreakdown');
+  if (!result.valid || !hasInput) { el.innerHTML = '<div class="no-quote-tip">当前范围无里程报价或未输入里程</div>'; return; }
+  var html = '';
+  result.detail.forEach(function(d) {
+    var valCls = result.isMatch ? ' style="color:#7C3AED;font-weight:700"' : '';
+    html += '<div class="breakdown-row"><span class="desc">'+d.desc+'</span><span class="val"'+valCls+'>¥'+d.amount.toFixed(2)+'</span></div>';
+  });
+  if (result.isMatch) {
+    html += '<div class="breakdown-row total"><span class="desc">合计（全额费率）</span><span class="val" style="color:#7C3AED;font-weight:800">¥'+result.total.toFixed(2)+'</span></div>';
+  } else {
+    html += '<div class="breakdown-row total"><span class="desc">合计</span><span class="val">¥'+result.total.toFixed(2)+'</span></div>';
+  }
+  el.innerHTML = html;
+}
+
+// ========== 适用范围选择器（分组+搜索） ==========
+function initScopeSelector() {
+  buildScopeGroupMap();
+  var container = document.getElementById('regionSelector');
+  var scopes = unique(ruleList.map(function(r){return r['适用范围'];}));
+  scopes.forEach(function(s) { if (!selectedScopes.has(s)) selectedScopes.add(s); });
+
+  var groups = {};
+  scopes.forEach(function(s) {
+    var g = scopeGroupMap[s] || '其他';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(s);
+  });
+
+  var groupOrder = ['华东区域','华南区域','华北区域','西南区域','西北区域','东北区域','其他'];
+  var sortedGroups = groupOrder.filter(function(g){return groups[g];});
+  Object.keys(groups).forEach(function(g){if(sortedGroups.indexOf(g)===-1) sortedGroups.push(g);});
+
+  var html = '';
+  sortedGroups.forEach(function(gName) {
+    var items = groups[gName];
+    var collapsed = groupCollapsed[gName] ? 'collapsed' : '';
+    var arrow = groupCollapsed[gName] ? 'collapsed' : '';
+    html += '<div class="scope-group" data-group="'+gName+'">';
+    html += '<div class="scope-group-header" data-group="'+gName+'">';
+    html += '<span class="arrow '+arrow+'">▼</span>';
+    html += '<span class="group-name">'+gName+'</span>';
+    html += '<span class="group-count">'+items.length+'</span>';
+    html += '<label class="group-check" style="margin-left:auto;font-size:12px;color:var(--gray-500);cursor:pointer;display:flex;align-items:center;gap:4px">';
+    html += '<input type="checkbox" class="group-cb" data-group="'+gName+'"'+(items.every(function(s){return selectedScopes.has(s);})?' checked':'')+'> 全选</label>';
+    html += '</div>';
+    html += '<div class="scope-group-body '+collapsed+'">';
+    items.forEach(function(s) {
+      html += '<div class="scope-chip'+(selectedScopes.has(s)?' active':'')+'" data-scope="'+s+'">'+s+'</div>';
+    });
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+
+  // 更新匹配模式提示
+  var hintEl = document.getElementById('matchModeHint');
+  var matchRules = ruleList.filter(function(r){ return (r.weightRule&&r.weightRule.calcMode==='match')||(r.mileageRule&&r.mileageRule.calcMode==='match'); });
+  if (matchRules.length > 0) {
+    hintEl.textContent = '📌 当前有 ' + matchRules.length + ' 条规则使用匹配模式（区间内数据×该区间费率）';
+    hintEl.style.display = '';
+  } else {
+    hintEl.style.display = 'none';
+  }
+}
+
+function filterScopes() {
+  var query = document.getElementById('scopeSearch').value.trim().toLowerCase();
+  var chips = document.querySelectorAll('.scope-chip');
+  var visibleGroups = {};
+  chips.forEach(function(chip) {
+    var scope = chip.getAttribute('data-scope');
+    var show = !query || scope.toLowerCase().indexOf(query) >= 0;
+    chip.classList.toggle('filtered-out', !show);
+    if (show) {
+      var g = chip.closest('.scope-group');
+      if (g) visibleGroups[g.getAttribute('data-group')] = true;
+    }
+  });
+  document.querySelectorAll('.scope-group').forEach(function(g) {
+    var gn = g.getAttribute('data-group');
+    g.style.display = visibleGroups[gn] ? '' : 'none';
+  });
+}
+
+// ========== 价格对比（色阶 + 摘要 + 折叠） ==========
+function updateCompare(w, d) {
+  var weight = (typeof w !== 'undefined') ? w : (parseFloat(document.getElementById('weight').value) || 0);
+  var distance = (typeof d !== 'undefined') ? d : (parseFloat(document.getElementById('distance').value) || 0);
+  var ft = document.getElementById('fuelType').value;
+  var vt = document.getElementById('vehicleType').value;
+  var vl = parseFloat(document.getElementById('vehicleLength').value);
+
+  renderSummaryBoard(ft, vt, vl, weight, distance);
+
+  if (weight <= 0 && distance <= 0) {
+    document.getElementById('compareResult').innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:40px">请输入重量和里程后查看对比</div>';
+    return;
+  }
+
+  var filteredRules = ruleList.filter(function(r){
+    return r['燃油类型']===ft && r['车型']===vt && r['车长']===vl && selectedScopes.has(r['适用范围']);
+  });
+  if (filteredRules.length === 0) {
+    document.getElementById('compareResult').innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:40px">选中的适用范围无匹配规则</div>';
+    return;
+  }
+
+  var results = filteredRules.map(function(rule) {
+    var wr = calcWeightFinal(weight, rule);
+    var dr = calcMileageFinal(distance, rule);
+    var wv = wr.valid ? wr.finalTotal : 0;
+    var dv = dr.valid ? dr.total : 0;
+    var fin = 0, basis = '-';
+    if (wr.valid && dr.valid && weight > 0 && distance > 0) { fin = Math.max(wv, dv); basis = wv >= dv ? '重量' : '里程'; }
+    else if (wr.valid && weight > 0) { fin = wv; basis = '仅重量'; }
+    else if (dr.valid && distance > 0) { fin = dv; basis = '仅里程'; }
+    return {
+      scope:rule['适用范围'],region:rule['区域']||'',
+      weightPrice:wr.valid?wr.finalTotal:null,distPrice:dr.valid?dr.total:null,
+      final:fin,basis:basis,hasWeight:wr.valid,hasMileage:dr.valid,
+      isMatch:(wr.isMatch||dr.isMatch)
+    };
+  });
+
+  var validResults = results.filter(function(r){return r.final > 0;}).sort(function(a,b){return a.final - b.final;});
+  var minF = validResults.length ? validResults[0].final : 0;
+  var maxF = validResults.length ? validResults[validResults.length-1].final : 0;
+
+  if (compareSortCol) {
+    results.sort(function(a,b) {
+      var va, vb;
+      if (compareSortCol === 'scope') { va = a.scope; vb = b.scope; }
+      else if (compareSortCol === 'weight') { va = a.weightPrice||0; vb = b.weightPrice||0; }
+      else if (compareSortCol === 'dist') { va = a.distPrice||0; vb = b.distPrice||0; }
+      else if (compareSortCol === 'final') { va = a.final; vb = b.final; }
+      else { va = 0; vb = 0; }
+      if (typeof va === 'string') return compareSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      return compareSortDir === 'asc' ? va - vb : vb - va;
+    });
+  } else {
+    results.sort(function(a,b){return a.final - b.final;});
+  }
+
+  var SHOW_TOP = 5, SHOW_BOT = 3;
+  var showAll = results.length <= (SHOW_TOP + SHOW_BOT);
+  var topSet = new Set(), botSet = new Set();
+  if (!showAll) {
+    validResults.slice(0, SHOW_TOP).forEach(function(r){topSet.add(r.scope);});
+    validResults.slice(-SHOW_BOT).forEach(function(r){botSet.add(r.scope);});
+  }
+
+  function getHeatClass(price) {
+    if (maxF === minF || price <= 0) return '';
+    var ratio = (price - minF) / (maxF - minF);
+    if (ratio <= 0.1) return 'heat-1';
+    if (ratio <= 0.25) return 'heat-2';
+    if (ratio <= 0.4) return 'heat-3';
+    if (ratio <= 0.55) return 'heat-4';
+    if (ratio <= 0.7) return 'heat-5';
+    if (ratio <= 0.85) return 'heat-6';
+    return 'heat-7';
+  }
+
+  var sortArrow = function(col) {
+    if (compareSortCol !== col) return '<span class="sort-arrow">↕</span>';
+    return '<span class="sort-arrow">'+(compareSortDir==='asc'?'↑':'↓')+'</span>';
+  };
+
+  var html = '<div class="compare-table-wrap"><table class="compare-table"><thead><tr>';
+  html += '<th data-sort="scope">排名'+sortArrow('scope')+'</th>';
+  html += '<th data-sort="scope">适用范围'+sortArrow('scope')+'</th>';
+  html += '<th>区域</th>';
+  html += '<th>模式</th>';
+  html += '<th data-sort="weight">重量计费'+sortArrow('weight')+'</th>';
+  html += '<th data-sort="dist">里程计费'+sortArrow('dist')+'</th>';
+  html += '<th data-sort="final">最终运费'+sortArrow('final')+'</th>';
+  html += '<th>结算依据</th><th>与最低价差</th>';
+  html += '</tr></thead><tbody>';
+
+  var hiddenCount = 0;
+  results.forEach(function(r, i) {
+    var diff = r.final > 0 && minF > 0 ? r.final - minF : 0;
+    var isBest = r.final === minF && validResults.length > 1 && r.final > 0;
+    var isWorst = r.final === maxF && validResults.length > 1 && minF !== maxF && r.final > 0;
+    var visible = showAll || topSet.has(r.scope) || botSet.has(r.scope);
+    if (!visible) { hiddenCount++; return; }
+    var heat = getHeatClass(r.final);
+    var rank = r.final > 0 ? (validResults.findIndex(function(v){return v.scope===r.scope;})+1) : '-';
+    html += '<tr class="'+heat+'">';
+    html += '<td>'+rank+'</td>';
+    html += '<td class="region-name">'+esc(r.scope)+'</td>';
+    html += '<td style="font-size:12px;color:var(--gray-500)">'+(r.region?'<span style="padding:1px 6px;background:var(--gray-100);border-radius:4px">'+esc(r.region)+'</span>':'-')+'</td>';
+    html += '<td>'+(r.isMatch?'<span class="match-badge">匹配</span>':'<span class="tiered-badge">累加</span>')+'</td>';
+    html += '<td>'+(r.weightPrice!==null?'¥'+r.weightPrice.toFixed(2):'<span class="no-data">无报价</span>')+'</td>';
+    html += '<td>'+(r.distPrice!==null?'¥'+r.distPrice.toFixed(2):'<span class="no-data">无报价</span>')+'</td>';
+    html += '<td class="'+(isBest?'best':(isWorst?'worst':''))+'"><strong>'+
+      (r.final>0?'¥'+r.final.toFixed(2):'<span class="no-data">无法计算</span>')+'</strong></td>';
+    html += '<td>'+r.basis+'</td>';
+    html += '<td>'+(diff>0?'<span style="color:var(--danger)">+¥'+diff.toFixed(2)+'</span>':(r.final>0?'<span style="color:var(--success)">最低 ✓</span>':'-'))+'</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  if (!showAll && hiddenCount > 0) {
+    html += '<div class="collapse-toggle"><button id="btnShowAll">展开其余 '+hiddenCount+' 个范围</button></div>';
+  }
+
+  var barResults = validResults.slice(0, 10);
+  var barColors = ['#2563EB','#059669','#D97706','#DC2626','#7C3AED','#EC4899','#0891B2','#65A30D','#EA580C','#4F46E5'];
+  var barHtml = '<div class="bar-visual">';
+  barResults.forEach(function(r, i) {
+    var pct = maxF > 0 ? (r.final / maxF * 100) : 0;
+    var scopeShort = r.scope.length > 6 ? r.scope.substring(0,6) : r.scope;
+    barHtml += '<div class="bar-item"><div class="bar-name" title="'+esc(r.scope)+'">'+esc(scopeShort)+'</div>';
+    barHtml += '<div class="bar-track"><div class="bar-fill" style="width:'+Math.max(pct,8)+'%;background:'+barColors[i%barColors.length]+'">¥'+r.final.toFixed(0)+'</div></div>';
+    barHtml += '<div class="bar-price">'+(r.final===minF?'🏆 最优':'+¥'+(r.final-minF).toFixed(0))+'</div></div>';
+  });
+  barHtml += '</div>';
+  if (validResults.length > 10) {
+    barHtml += '<div style="text-align:center;color:var(--gray-400);font-size:12px;padding:8px">仅展示前10名</div>';
+  }
+
+  var savings = maxF - minF;
+  var hintHtml = '';
+  if (savings > 0 && validResults.length > 1) {
+    hintHtml = '<div class="savings-tip">💡 <strong>省钱提示：</strong>选择 <strong>'+esc(validResults[0].scope)+'</strong> 运输最划算，相比最贵的 '+esc(validResults[validResults.length-1].scope)+' 可节省 <strong style="color:var(--success)">¥'+savings.toFixed(2)+'</strong>（节省 '+((savings/maxF)*100).toFixed(1)+'%）</div>';
+  }
+
+  document.getElementById('compareResult').innerHTML = html + barHtml + hintHtml;
+}
+
+function renderSummaryBoard(ft, vt, vl, weight, distance) {
+  var board = document.getElementById('summaryBoard');
+  if (weight <= 0 && distance <= 0) { board.innerHTML = ''; return; }
+  var filtered = ruleList.filter(function(r){
+    return r['燃油类型']===ft && r['车型']===vt && r['车长']===vl && selectedScopes.has(r['适用范围']);
+  });
+  var prices = [];
+  filtered.forEach(function(rule) {
+    var wr = calcWeightFinal(weight, rule);
+    var dr = calcMileageFinal(distance, rule);
+    var wv = wr.valid ? wr.finalTotal : 0;
+    var dv = dr.valid ? dr.total : 0;
+    var fin = 0;
+    if (wr.valid && dr.valid && weight > 0 && distance > 0) fin = Math.max(wv, dv);
+    else if (wr.valid && weight > 0) fin = wv;
+    else if (dr.valid && distance > 0) fin = dv;
+    if (fin > 0) prices.push({scope:rule['适用范围'], price:fin});
+  });
+  if (prices.length === 0) { board.innerHTML = ''; return; }
+  prices.sort(function(a,b){return a.price-b.price;});
+  var minP = prices[0];
+  var maxP = prices[prices.length-1];
+  var median = prices.length % 2 === 0 ? (prices[prices.length/2-1].price + prices[prices.length/2].price)/2 : prices[Math.floor(prices.length/2)].price;
+  var avg = prices.reduce(function(s,p){return s+p.price;},0) / prices.length;
+
+  board.innerHTML =
+    '<div class="summary-item best"><div class="si-label">🏆 最优</div><div class="si-value">¥'+minP.price.toFixed(0)+'</div><div class="si-name">'+esc(minP.scope)+'</div></div>'+
+    '<div class="summary-item median"><div class="si-label">📊 中位数</div><div class="si-value">¥'+median.toFixed(0)+'</div><div class="si-name">'+prices.length+'个范围</div></div>'+
+    '<div class="summary-item avg"><div class="si-label">📈 均值</div><div class="si-value">¥'+avg.toFixed(0)+'</div><div class="si-name"></div></div>'+
+    '<div class="summary-item worst"><div class="si-label">📉 最贵</div><div class="si-value">¥'+maxP.price.toFixed(0)+'</div><div class="si-name">'+esc(maxP.scope)+'</div></div>';
+}
+
+// ========== 计价规则：费率矩阵 ==========
+function toggleRules() {
+  var content = document.getElementById('ruleContent');
+  var toggle = document.getElementById('ruleToggle');
+  var show = !content.classList.contains('show');
+  content.classList.toggle('show', show);
+  toggle.textContent = show ? '收起 ▲' : '展开查看 ▼';
+  if (show) renderRules();
+}
+
+function renderRules() {
+  var ft = document.getElementById('fuelType').value;
+  var vt = document.getElementById('vehicleType').value;
+  var vl = parseFloat(document.getElementById('vehicleLength').value);
+  var filtered = ruleList.filter(function(r){return r['燃油类型']===ft && r['车型']===vt && r['车长']===vl;});
+
+  if (filtered.length === 0) {
+    document.getElementById('ruleContent').innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:40px">当前筛选条件下无匹配的计价规则</div>';
+    return;
+  }
+
+  // Collect unique scopes and group by region
+  var scopes = unique(filtered.map(function(r){return r['适用范围'];}));
+  // First time: select all scopes; afterwards only add newly-appeared ones
+  if (!matrixScopesInited) {
+    scopes.forEach(function(s){ matrixSelectedScopes.add(s); });
+    matrixScopesInited = true;
+  } else {
+    scopes.forEach(function(s){ if (!matrixSelectedScopes.has(s) && !matrixRemovedScopes.has(s)) matrixSelectedScopes.add(s); });
+  }
+  // Clean stale scopes that no longer exist
+  var stale = []; matrixSelectedScopes.forEach(function(s){ if(scopes.indexOf(s)===-1) stale.push(s); });
+  stale.forEach(function(s){matrixSelectedScopes.delete(s);});
+
+  // Build scope groups by region
+  var scopeGroups = {};
+  scopes.forEach(function(s) {
+    var g = scopeGroupMap[s] || '其他';
+    if (!scopeGroups[g]) scopeGroups[g] = [];
+    scopeGroups[g].push(s);
+  });
+  var groupOrder = ['华东区域','华南区域','华北区域','西南区域','西北区域','东北区域','其他'];
+  var sortedGroupKeys = groupOrder.filter(function(g){return scopeGroups[g];});
+  Object.keys(scopeGroups).forEach(function(g){if(sortedGroupKeys.indexOf(g)===-1) sortedGroupKeys.push(g);});
+
+  // Apply scope search filter to build visible groups
+  var searchLower = (matrixScopeSearch || '').trim().toLowerCase();
+  var visibleGroups = {};
+  sortedGroupKeys.forEach(function(gName) {
+    var items = scopeGroups[gName].filter(function(s) {
+      return !searchLower || s.toLowerCase().indexOf(searchLower) >= 0;
+    });
+    if (items.length > 0) visibleGroups[gName] = items;
+  });
+
+  var html = '<div class="rule-filter-tip">当前筛选维度：'+ft+' · '+vt+' · '+vl+'m ｜ 点击行展开阶梯明细 ｜ 点击列头排序</div>';
+
+  // === Filter controls ===
+  html += '<div class="compare-controls" style="margin-bottom:6px">';
+  html += '<div class="control-btns" style="margin-bottom:0">';
+  html += '<button class="btn-secondary'+(matrixModeFilter==='all'?' active':'')+'" data-mode="all">全部</button>';
+  html += '<button class="btn-secondary'+(matrixModeFilter==='tiered'?' active':'')+'" data-mode="tiered">累加</button>';
+  html += '<button class="btn-secondary'+(matrixModeFilter==='match'?' active':'')+'" data-mode="match">匹配 🎯</button>';
+  html += '</div></div>';
+
+  // === Scope-level selector (grouped + searchable, like price comparison) ===
+  html += '<div class="scope-selector">';
+  html += '<div class="scope-selector-header">';
+  html += '<div class="scope-selector-title">选择适用范围</div>';
+  html += '<div class="scope-selector-tools">';
+  html += '<input type="text" class="scope-search" id="matrixScopeSearch" placeholder="🔍 搜索适用范围..." value="'+esc(matrixScopeSearch||'')+'">';
+  html += '<button class="btn-secondary btn-sm" id="matrixScopeSelectAll">全选</button>';
+  html += '<button class="btn-secondary btn-sm" id="matrixScopeClearAll">清空</button>';
+  html += '</div></div>';
+  html += '<div class="scope-selector-body">';
+
+  sortedGroupKeys.forEach(function(gName) {
+    var items = visibleGroups[gName];
+    if (!items) return;
+    var collapsed = groupCollapsed['m_'+gName] ? 'collapsed' : '';
+    var arrow = groupCollapsed['m_'+gName] ? '' : 'collapsed';
+    var allSelected = items.every(function(s){return matrixSelectedScopes.has(s);});
+    html += '<div class="scope-group" data-mgroup="'+gName+'">';
+    html += '<div class="scope-group-header" data-mgroup="'+gName+'">';
+    html += '<span class="arrow '+arrow+'">▼</span>';
+    html += '<span class="group-name">'+gName+'</span>';
+    html += '<span class="group-count">'+items.length+'</span>';
+    html += '<label class="group-check" style="margin-left:auto;font-size:12px;color:var(--gray-500);cursor:pointer;display:flex;align-items:center;gap:4px">';
+    html += '<input type="checkbox" class="group-cb" data-mgroup="'+gName+'"'+(allSelected?' checked':'')+'> 全选</label>';
+    html += '</div>';
+    html += '<div class="scope-group-body '+collapsed+'">';
+    items.forEach(function(s) {
+      html += '<div class="scope-chip'+(matrixSelectedScopes.has(s)?' active':'')+'" data-mscope="'+esc(s)+'">'+esc(s)+'</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div></div>';
+
+  // Filter helper - uses scope-level selection
+  function applyMatrixFilter(rules, type) {
+    var isW = type === 'weight';
+    return rules.filter(function(r) {
+      var scope = r['适用范围'];
+      if (!matrixSelectedScopes.has(scope)) return false;
+      if (matrixSearchQuery && scope.toLowerCase().indexOf(matrixSearchQuery.toLowerCase()) < 0) return false;
+      if (matrixModeFilter !== 'all') {
+        var rule = isW ? r.weightRule : r.mileageRule;
+        var isM = rule && rule.calcMode === 'match';
+        if (matrixModeFilter === 'tiered' && isM) return false;
+        if (matrixModeFilter === 'match' && !isM) return false;
+      }
+      return true;
+    });
+  }
+
+  // === Weight matrices (split by mode) ===
+  var wFiltered = applyMatrixFilter(filtered, 'weight');
+  var wTiered = wFiltered.filter(function(r){ var rule=r.weightRule; return !rule || rule.calcMode!=='match'; });
+  var wMatch  = wFiltered.filter(function(r){ var rule=r.weightRule; return rule && rule.calcMode==='match'; });
+
+  if (wTiered.length > 0) html += buildMatrix(wTiered, 'weight', '📦 按重量计费（累加模式）');
+  if (wMatch.length > 0)  html += buildMatrix(wMatch, 'weight', '📦 按重量计费（匹配模式 🎯）');
+  if (wFiltered.length === 0) html += '<div style="text-align:center;color:var(--gray-400);padding:20px;font-size:13px">无匹配的重量计费规则</div>';
+
+  // === Mileage matrices (split by mode) ===
+  var mFiltered = applyMatrixFilter(filtered, 'mileage');
+  var mTiered = mFiltered.filter(function(r){ var rule=r.mileageRule; return !rule || rule.calcMode!=='match'; });
+  var mMatch  = mFiltered.filter(function(r){ var rule=r.mileageRule; return rule && rule.calcMode==='match'; });
+
+  if (mTiered.length > 0) html += buildMatrix(mTiered, 'mileage', '🛣️ 按里程计费（累加模式）');
+  if (mMatch.length > 0)  html += buildMatrix(mMatch, 'mileage', '🛣️ 按里程计费（匹配模式 🎯）');
+  if (mFiltered.length === 0) html += '<div style="text-align:center;color:var(--gray-400);padding:20px;font-size:13px">无匹配的里程计费规则</div>';
+
+  document.getElementById('ruleContent').innerHTML = html;
+}
+
+function buildMatrix(rules, type, title) {
+  var isWeight = type === 'weight';
+  var firstRule = rules.length > 0 ? (isWeight ? rules[0].weightRule : rules[0].mileageRule) : null;
+  var batchIsMatch = firstRule && firstRule.calcMode === 'match';
+  var unit = isWeight ? 'kg' : 'km';
+  var html = '<div class="matrix-section"><div class="matrix-title">'+title+'</div>';
+
+  // ---- 构建区间列头 ----
+  var stdIntervals = [];
+  if (batchIsMatch) {
+    // 匹配模式：直接用第一条规则的原始 tier 结构做列头，确保与用户上传数据完全一致
+    var refRule = null;
+    for (var ri = 0; ri < rules.length; ri++) {
+      var rr = isWeight ? rules[ri].weightRule : rules[ri].mileageRule;
+      if (rr && rr.tiers && rr.tiers.length > 0) { refRule = rr; break; }
+    }
+    if (refRule && refRule.tiers) {
+      refRule.tiers.forEach(function(t) {
+        var toL = t.to === Infinity ? '∞' : t.to;
+        stdIntervals.push({from: t.from, to: t.to, label: t.from + '-' + toL});
+      });
+    }
+  } else {
+    // 累加模式：原有逻辑不变
+    var breakpointSet = {};
+    rules.forEach(function(r) {
+      var rule = isWeight ? r.weightRule : r.mileageRule;
+      if (!rule || !rule.tiers) return;
+      if (rule.baseAmount > 0) breakpointSet[rule.baseAmount] = true;
+      rule.tiers.forEach(function(t) {
+        if (t.from !== Infinity) breakpointSet[t.from] = true;
+        if (t.to !== Infinity) breakpointSet[t.to] = true;
+      });
+    });
+    var breakpoints = Object.keys(breakpointSet).map(Number).sort(function(a,b){return a-b;});
+    for (var i = 0; i < breakpoints.length; i++) {
+      var from = breakpoints[i];
+      var to = (i + 1 < breakpoints.length) ? breakpoints[i+1] : Infinity;
+      stdIntervals.push({from: from, to: to, label: from + '-' + (to === Infinity ? '∞' : to)});
+    }
+  }
+
+  // 匹配模式：查找 interval.from 落在哪个 tier 内，返回该 tier 的费率
+  function findMatchRate(rule, interval) {
+    if (!rule || !rule.tiers) return null;
+    for (var i = 0; i < rule.tiers.length; i++) {
+      var t = rule.tiers[i];
+      if (interval.from >= t.from && (interval.from < t.to || t.to === Infinity)) {
+        return t.rate;
+      }
+    }
+    // 兜底：如果 interval.from 恰好等于某个 tier 的 to（边界情况），查找下一个 tier
+    for (var i = 0; i < rule.tiers.length; i++) {
+      var t = rule.tiers[i];
+      if (t.from === interval.from) return t.rate;
+    }
+    return null;
+  }
+
+  // 累加模式：查找完全覆盖 interval 的 tier 费率
+  function findTieredRate(rule, interval) {
+    if (!rule || !rule.tiers) return null;
+    for (var i = 0; i < rule.tiers.length; i++) {
+      var t = rule.tiers[i];
+      if (t.from <= interval.from && (t.to >= interval.to || t.to === Infinity)) {
+        return t.rate;
+      }
+    }
+    return null;
+  }
+
+  // ---- 列数计算 ----
+  var totalCols = 3; // 适用范围 + 区域 + 模式
+  if (isWeight) totalCols += 2; // 保底价 + 封顶价
+  if (stdIntervals.length === 0) { totalCols += 1; }
+  else {
+    if (!batchIsMatch) totalCols += 1; // 累加模式有起步价列
+    totalCols += stdIntervals.length;
+  }
+
+  // ---- 表头 ----
+  html += '<div class="matrix-wrap"><table class="matrix-table"><thead><tr>';
+  html += '<th>适用范围</th>';
+  html += '<th>区域</th>';
+  html += '<th>模式</th>';
+  if (isWeight) {
+    html += '<th>保底价</th><th>封顶价</th>';
+  }
+  if (stdIntervals.length === 0) {
+    html += '<th>费率（全额）</th>';
+  } else {
+    if (!batchIsMatch) {
+      html += '<th>起步价</th>';
+    }
+    stdIntervals.forEach(function(iv, idx) {
+      var sortCls = (matrixSortCol === type+'_'+idx) ? 'active' : '';
+      var arrow = (matrixSortCol === type+'_'+idx) ? (matrixSortDir === 'asc' ? '↑' : '↓') : '↕';
+      html += '<th class="sortable" data-sort="'+type+'_'+idx+'">'+iv.label+' '+unit+' <span class="sort-ind '+sortCls+'">'+arrow+'</span></th>';
+    });
+  }
+  html += '</tr></thead><tbody>';
+
+  // ---- 数据行 ----
+  var matrixData = [];
+  rules.forEach(function(r) {
+    var rule = isWeight ? r.weightRule : r.mileageRule;
+    var isMatch = rule && rule.calcMode === 'match';
+    var row = {
+      scope: r['适用范围'],
+      region: r['区域'] || '',
+      rule: rule,
+      isMatch: isMatch,
+      baseRate: rule ? (rule.base || 0) : 0,
+      baseAmount: rule ? (rule.baseAmount || 0) : 0,
+      floorPrice: (isWeight && rule) ? (rule.floorPrice || 0) : 0,
+      ceilPrice: (isWeight && rule) ? (rule.ceilPrice || 0) : 0,
+      rates: {}
+    };
+    if (stdIntervals.length > 0) {
+      stdIntervals.forEach(function(iv) {
+        row.rates[iv.label] = isMatch ? findMatchRate(rule, iv) : findTieredRate(rule, iv);
+      });
+    }
+    matrixData.push(row);
+  });
+
+  // ---- 排序 ----
+  if (matrixSortCol) {
+    var colKey = matrixSortCol;
+    matrixData.sort(function(a,b) {
+      var va, vb;
+      if (colKey === type+'_base') { va = a.baseRate; vb = b.baseRate; }
+      else {
+        var idx = parseInt(colKey.split('_')[1]);
+        var ivLabel = stdIntervals[idx] ? stdIntervals[idx].label : '';
+        va = a.rates[ivLabel] || 0;
+        vb = b.rates[ivLabel] || 0;
+      }
+      return matrixSortDir === 'asc' ? va - vb : vb - va;
+    });
+  }
+
+  // ---- 色阶计算 ----
+  stdIntervals.forEach(function(iv) {
+    var vals = matrixData.map(function(d){return d.rates[iv.label]||0;}).filter(function(v){return v>0;});
+    if (vals.length === 0) return;
+    var min = Math.min.apply(null, vals);
+    var max = Math.max.apply(null, vals);
+    matrixData.forEach(function(d) { d['_min_'+iv.label] = min; d['_max_'+iv.label] = max; });
+  });
+
+  // ---- 渲染行 + 展开明细 ----
+  matrixData.forEach(function(d) {
+    var isExpanded = expandedRows.has(type+'|'+d.scope);
+    html += '<tr class="'+(isExpanded?'expanded':'')+'" data-expand="'+type+'|'+d.scope+'">';
+    html += '<td>'+esc(d.scope)+'</td>';
+    html += '<td style="font-size:12px">'+(d.region?'<span style="padding:1px 6px;background:var(--gray-100);border-radius:4px">'+esc(d.region)+'</span>':'-')+'</td>';
+    html += '<td>'+(d.isMatch?'<span class="match-badge">匹配</span>':'<span class="tiered-badge">累加</span>')+'</td>';
+    if (isWeight) {
+      html += '<td>'+(d.floorPrice>0?'<strong style="color:var(--warning)">¥'+d.floorPrice.toFixed(2)+'</strong>':'<span style="color:var(--gray-400)">无</span>')+'</td>';
+      html += '<td>'+(d.ceilPrice>0?'<strong style="color:var(--success)">¥'+d.ceilPrice.toFixed(2)+'</strong>':'<span style="color:var(--gray-400)">无</span>')+'</td>';
+    }
+    if (stdIntervals.length === 0) {
+      var rate = d.rule && d.rule.tiers && d.rule.tiers.length > 0 ? d.rule.tiers[0].rate : 0;
+      html += '<td style="color:#7C3AED;font-weight:700">¥' + rate.toFixed(2) + '/'+unit+' <span style="font-size:10px;color:var(--gray-400)">全额费率</span></td>';
+    } else {
+      if (!d.isMatch) {
+        html += '<td><strong>¥'+d.baseRate.toFixed(2)+'</strong>/<span style="font-size:11px;color:var(--gray-400)">前'+d.baseAmount+unit+'</span></td>';
+      }
+      stdIntervals.forEach(function(iv) {
+        var r = d.rates[iv.label];
+        if (r === null || r === undefined) { html += '<td style="color:var(--gray-300)">-</td>'; return; }
+        var cls = '';
+        if (r === d['_min_'+iv.label] && d['_min_'+iv.label] !== d['_max_'+iv.label]) cls = 'cell-best';
+        else if (r === d['_max_'+iv.label] && d['_min_'+iv.label] !== d['_max_'+iv.label]) cls = 'cell-worst';
+        html += '<td class="'+cls+'">¥'+r.toFixed(2)+'</td>';
+      });
+    }
+    html += '</tr>';
+
+    // ---- 展开明细 ----
+    if (isExpanded && d.rule) {
+      html += '<tr class="expand-detail"><td colspan="'+totalCols+'">';
+      html += '<div class="detail-inner">';
+
+      // 左栏：阶梯明细
+      html += '<div class="detail-panel"><h4>阶梯明细'+(d.isMatch?' <span class="match-badge">匹配模式</span>':' <span class="tiered-badge">累加模式</span>')+'</h4>';
+      if (d.isMatch) {
+        html += '<div style="font-size:11px;color:var(--gray-500);margin-bottom:8px">匹配模式：数据落在哪个区间，直接用 数据 × 该区间费率</div>';
+        // 使用与矩阵列头完全一致的区间展示
+        if (stdIntervals.length > 0) {
+          stdIntervals.forEach(function(iv) {
+            var rate = d.rates[iv.label];
+            if (rate === null || rate === undefined) return;
+            html += '<div class="detail-tier"><span class="dt-desc">'+iv.label+' '+unit+'</span><span class="dt-val match-mode">¥'+rate.toFixed(2)+'/'+unit+'</span></div>';
+          });
+        } else if (d.rule.tiers) {
+          d.rule.tiers.forEach(function(t) {
+            var toL = t.to === Infinity ? '∞' : t.to;
+            html += '<div class="detail-tier"><span class="dt-desc">'+t.from+'-'+toL+' '+unit+'</span><span class="dt-val match-mode">¥'+t.rate.toFixed(2)+'/'+unit+'</span></div>';
+          });
+        }
+        // 保底价/封顶价用醒目样式
+        if (isWeight && (d.floorPrice > 0 || d.ceilPrice > 0)) {
+          html += '<div class="floor-ceil-info">';
+          if (d.floorPrice > 0) html += '<div class="detail-tier"><span class="dt-desc">⚠️ 保底价</span><span class="dt-val" style="color:var(--warning);font-size:13px">¥'+d.floorPrice.toFixed(2)+'</span></div>';
+          if (d.ceilPrice > 0) html += '<div class="detail-tier"><span class="dt-desc">🔒 封顶价</span><span class="dt-val" style="color:var(--success);font-size:13px">¥'+d.ceilPrice.toFixed(2)+'</span></div>';
+          html += '</div>';
+        }
+      } else {
+        html += '<div class="detail-tier"><span class="dt-desc">起步（0-'+d.baseAmount+unit+'）</span><span class="dt-val highlight">¥'+d.baseRate.toFixed(2)+'</span></div>';
+        if (d.rule.tiers) {
+          d.rule.tiers.forEach(function(t) {
+            var toL = t.to === Infinity ? '∞' : t.to;
+            html += '<div class="detail-tier"><span class="dt-desc">'+t.from+'-'+toL+' '+unit+'</span><span class="dt-val">¥'+t.rate.toFixed(2)+'/'+unit+'</span></div>';
+          });
+        }
+        if (isWeight) {
+          if (d.floorPrice > 0) html += '<div class="detail-tier"><span class="dt-desc">保底价</span><span class="dt-val" style="color:var(--warning)">¥'+d.floorPrice.toFixed(2)+'</span></div>';
+          if (d.ceilPrice > 0) html += '<div class="detail-tier"><span class="dt-desc">封顶价</span><span class="dt-val" style="color:var(--success)">¥'+d.ceilPrice.toFixed(2)+'</span></div>';
+        }
+      }
+      html += '</div>';
+
+      // 右栏：计费示例
+      html += '<div class="detail-panel"><h4>计费示例</h4>';
+      if (d.isMatch) {
+        // 匹配模式：生成覆盖各 tier 的示例值，展示中间步骤
+        var samples = [];
+        if (d.rule.tiers) {
+          d.rule.tiers.forEach(function(t) {
+            var sv;
+            if (t.to === Infinity) {
+              sv = t.from + 100;
+            } else {
+              var mid = (t.from + t.to) / 2;
+              sv = Math.round(mid);
+              if (sv <= t.from) sv = t.from + 1;
+              if (sv >= t.to) sv = t.to - 1;
+            }
+            if (sv < 1) sv = 1;
+            samples.push(sv);
+          });
+        }
+        if (samples.length === 0) samples = [10, 100];
+
+        var floorP = d.floorPrice || 0;
+        var ceilP = d.ceilPrice || 0;
+
+        samples.forEach(function(s) {
+          // 查找落在哪个区间
+          var hitTier = null;
+          if (d.rule.tiers) {
+            for (var ti = 0; ti < d.rule.tiers.length; ti++) {
+              var tt = d.rule.tiers[ti];
+              if (s >= tt.from && (tt.to === Infinity || s < tt.to)) {
+                hitTier = tt;
+                break;
+              }
+            }
+          }
+          html += '<div class="sample-block">';
+          html += '<div class="sample-header"><span class="sample-input">'+s+' '+unit+'</span></div>';
+          if (hitTier) {
+            var toL = hitTier.to === Infinity ? '∞' : hitTier.to;
+            html += '<div class="sample-step">→ 落在 <span class="step-tier">'+hitTier.from+'-'+toL+' '+unit+'</span> 区间</div>';
+            var raw = Math.round(s * hitTier.rate * 100) / 100;
+            html += '<div class="sample-step">→ <span class="step-calc">'+s+' × ¥'+hitTier.rate.toFixed(2)+' = ¥'+raw.toFixed(2)+'</span></div>';
+            var final = raw;
+            if (isWeight && floorP > 0 && raw < floorP) {
+              html += '<div class="sample-step">→ <span class="step-adjust floor">低于保底价 ¥'+floorP.toFixed(2)+'，按保底计</span></div>';
+              final = floorP;
+            } else if (isWeight && ceilP > 0 && raw > ceilP) {
+              html += '<div class="sample-step">→ <span class="step-adjust ceil">高于封顶价 ¥'+ceilP.toFixed(2)+'，按封顶计</span></div>';
+              final = ceilP;
+            }
+            html += '<div class="sample-final">最终: ¥'+final.toFixed(2)+'</div>';
+          } else {
+            html += '<div class="sample-step" style="color:var(--gray-400)">→ 无匹配区间</div>';
+          }
+          html += '</div>';
+        });
+      } else {
+        // 累加模式：保持原有简洁展示
+        var samples = [10, 30, 50, 100, 200];
+        samples.forEach(function(s) {
+          var wr = calcWeightFinal(s, {weightRule:d.rule});
+          var result;
+          if (isWeight) {
+            result = wr.valid ? wr.finalTotal : '-';
+          } else {
+            var mr = calcMileageFinal(s, {mileageRule:d.rule});
+            result = mr.valid ? mr.total : '-';
+          }
+          var display = typeof result === 'number' ? '¥'+result.toFixed(2) : '-';
+          html += '<div class="detail-tier"><span class="dt-desc">'+s+unit+'</span><span class="dt-val highlight">'+display+'</span></div>';
+        });
+      }
+      html += '</div></div></td></tr>';
+    }
+  });
+
+  html += '</tbody></table></div></div>';
+  return html;
+}
+
+function esc(str) {
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ========== CSV 导入导出 ==========
+function importRulesCSV(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var text = e.target.result;
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      var newRules = parseCSVToRules(text);
+      if (!validateRules(newRules)) { showAlert('导入失败：未解析到有效计价规则'); return; }
+      ruleList = newRules;
+      var saveData = JSON.parse(JSON.stringify(ruleList));
+      saveData.forEach(function(rule) {
+        if (rule.weightRule && rule.weightRule.tiers) rule.weightRule.tiers.forEach(function(t){if(t.to===Infinity)t.to=99999;});
+        if (rule.mileageRule && rule.mileageRule.tiers) rule.mileageRule.tiers.forEach(function(t){if(t.to===Infinity)t.to=99999;});
+      });
+      localStorage.setItem('logistics_rules_v5', JSON.stringify(saveData));
+      buildScopeGroupMap();
+      var matchCount = ruleList.filter(function(r){ return (r.weightRule&&r.weightRule.calcMode==='match')||(r.mileageRule&&r.mileageRule.calcMode==='match'); }).length;
+      var statusText = '导入成功！自定义报价规则，共 ' + ruleList.length + ' 条';
+      if (matchCount > 0) statusText += '，其中 ' + matchCount + ' 条含匹配模式';
+      document.getElementById('ruleStatus').textContent = statusText;
+      initFilterOptions();
+      initScopeSelector();
+      calculate();
+      showAlert('导入成功，共 '+ruleList.length+' 条规则');
+    } catch(err) { showAlert('导入失败：'+err.message); }
+  };
+  reader.onerror = function(){ showAlert('文件读取失败'); };
+  reader.readAsText(file, 'GBK');
+  event.target.value = '';
+}
+
+function parseCSVToRules(text) {
+  var commaCount = (text.match(/,/g)||[]).length;
+  var semiCount = (text.match(/;/g)||[]).length;
+  var tabCount = (text.match(/\t/g)||[]).length;
+  var delim = ',';
+  if (semiCount > commaCount && semiCount > tabCount) delim = ';';
+  if (tabCount > commaCount && tabCount > semiCount) delim = '\t';
+
+  var rawLines = text.split(/\r?\n/).filter(function(l){return l.trim()!=='';});
+  if (rawLines.length < 2) throw new Error('CSV内容为空');
+
+  var headerIdx = -1, headers = [];
+  for (var i = 0; i < Math.min(rawLines.length, 5); i++) {
+    var cols = parseCSVLine(rawLines[i], delim);
+    var cc = cols.map(function(c){return cleanStr(c);});
+    if (cc.some(function(c){return c.indexOf('适用范围')>=0||c.indexOf('区域')>=0;}) && cc.some(function(c){return c.indexOf('车型')>=0;})) {
+      headerIdx = i; headers = cc; break;
+    }
+  }
+  if (headerIdx === -1) throw new Error('未找到表头行');
+
+  var col = {
+    fuelType: headers.findIndex(function(h){return h.indexOf('燃油类型')>=0||h.indexOf('燃料')>=0;}),
+    vehicleType: headers.findIndex(function(h){return h.indexOf('车型')>=0;}),
+    vehicleLength: headers.findIndex(function(h){return h.indexOf('车长')>=0;}),
+    scope: headers.findIndex(function(h){return h.indexOf('适用范围')>=0;}),
+    region: headers.findIndex(function(h){return h.indexOf('区域')>=0;}),
+    from: headers.findIndex(function(h){return h.indexOf('阶梯起始')>=0||h.indexOf('起始')>=0;}),
+    to: headers.findIndex(function(h){return h.indexOf('阶梯结束')>=0||h.indexOf('结束')>=0;}),
+    rate: headers.findIndex(function(h){return h.indexOf('费率')>=0;}),
+    base: headers.findIndex(function(h){return h.indexOf('起步价')>=0;}),
+    floor: headers.findIndex(function(h){return h.indexOf('保底价')>=0||h.indexOf('保底')>=0;}),
+    ceil: headers.findIndex(function(h){return h.indexOf('封顶价')>=0||h.indexOf('封顶')>=0;}),
+    calcType: headers.findIndex(function(h){return h.indexOf('计价方式')>=0||h.indexOf('计算规则')>=0;}),
+    calcMode: headers.findIndex(function(h){return h.indexOf('计费模式')>=0||h.indexOf('计算模式')>=0;})
+  };
+  if (col.scope === -1 || col.vehicleType === -1) throw new Error('缺少必要列');
+
+  var ruleMap = {};
+  for (var i = headerIdx+1; i < rawLines.length; i++) {
+    var cols = parseCSVLine(rawLines[i], delim);
+    if (cols.length < 4) continue;
+    var fuel = cleanStr(cols[col.fuelType]);
+    var vtype = cleanStr(cols[col.vehicleType]);
+    var vlen = parseFloat(cols[col.vehicleLength]) || 0;
+    var scope = cleanStr(cols[col.scope]);
+    var region = col.region >= 0 ? cleanStr(cols[col.region]) : '';
+    var from = parseFloat(cols[col.from]);
+    var toRaw = cleanStr(cols[col.to]);
+    var to = (!toRaw || toRaw==='∞' || toRaw==='99999' || toRaw==='null') ? Infinity : parseFloat(toRaw);
+    var rate = parseFloat(cols[col.rate]) || 0;
+    var base = parseFloat(cols[col.base]) || 0;
+    var floor = col.floor >= 0 ? (parseFloat(cols[col.floor]) || 0) : 0;
+    var ceil = col.ceil >= 0 ? (parseFloat(cols[col.ceil]) || 0) : 0;
+    var calcT = col.calcType >= 0 ? cleanStr(cols[col.calcType]).toLowerCase() : '';
+    var calcM = col.calcMode >= 0 ? cleanStr(cols[col.calcMode]) : '';
+    var isMatchMode = calcM.indexOf('匹配')>=0 || calcM.toLowerCase().indexOf('match')>=0;
+
+    if (!fuel || !vtype || !scope) continue;
+    var key = fuel+'|'+vtype+'|'+vlen+'|'+scope+'|'+region;
+    if (!ruleMap[key]) {
+      ruleMap[key] = {
+        '报价编码': key,
+        '燃油类型':fuel,'车型':vtype,'车长':vlen,'适用范围':scope,'区域':region,
+        weightRule:{base:0,baseAmount:0,floorPrice:0,ceilPrice:0,calcMode:'tiered',tiers:[]},
+        mileageRule:{base:0,baseAmount:0,calcMode:'tiered',tiers:[]}
+      };
+    }
+    var rule = ruleMap[key];
+    if (region && !rule['区域']) rule['区域'] = region;
+
+    var isW = calcT.indexOf('重量')>=0 || calcT.indexOf('kg')>=0;
+    var isM = calcT.indexOf('里程')>=0 || calcT.indexOf('公里')>=0 || calcT.indexOf('km')>=0;
+    var target = isW ? rule.weightRule : (isM ? rule.mileageRule : null);
+    if (!target) continue;
+
+    // 匹配模式
+    if (isMatchMode) {
+      target.calcMode = 'match';
+      if (isW && (floor > 0 || ceil > 0)) {
+        rule.weightRule.floorPrice = floor;
+        rule.weightRule.ceilPrice = ceil;
+      }
+      if (rate > 0 && !isNaN(from)) {
+        target.tiers.push({from:from,to:to,rate:rate});
+      }
+    } else {
+      target.calcMode = 'tiered';
+      if (from === 0 && base > 0) {
+        target.base = base; target.baseAmount = to === Infinity ? from : to;
+        if (isW) { rule.weightRule.floorPrice = floor; rule.weightRule.ceilPrice = ceil; }
+      } else if (rate > 0 && !isNaN(from)) {
+        target.tiers.push({from:from,to:to,rate:rate});
+      }
+    }
+  }
+
+  var result = Object.values(ruleMap);
+  result.forEach(function(rule) {
+    if (rule.weightRule.tiers.length === 0) rule.weightRule = null;
+    else rule.weightRule.tiers.sort(function(a,b){return a.from-b.from;});
+    if (rule.mileageRule.tiers.length === 0) rule.mileageRule = null;
+    else rule.mileageRule.tiers.sort(function(a,b){return a.from-b.from;});
+  });
+  return result;
+}
+
+function parseCSVLine(line, delim) {
+  var result = [], current = '', inQ = false;
+  for (var i = 0; i < line.length; i++) {
+    var c = line[i];
+    if (c === '"') inQ = !inQ;
+    else if (c === delim && !inQ) { result.push(current.trim()); current = ''; }
+    else current += c;
+  }
+  result.push(current.trim());
+  return result;
+}
+
+function cleanStr(s) {
+  if (typeof s !== 'string') return '';
+  return s.replace(/^["']|["']$/g,'').replace(/[\u3000\u200B\u200C\u200D\uFEFF]/g,'').trim();
+}
+
+function exportRulesCSV() {
+  // 表头：区域,燃油类型,车型,车长,适用范围,计价方式,计费模式,阶梯起始,阶梯结束,费率,起步价,保底价,封顶价
+  var csv = '区域,燃油类型,车型,车长,适用范围,计价方式,计费模式,阶梯起始,阶梯结束,费率,起步价,保底价,封顶价\n';
+  ruleList.forEach(function(rule) {
+    var region = rule['区域'] || '';
+    var wr = rule.weightRule;
+    var mr = rule.mileageRule;
+    var wrMode = (wr && wr.calcMode === 'match') ? '匹配' : '累加';
+    var mrMode = (mr && mr.calcMode === 'match') ? '匹配' : '累加';
+
+    if (wr && wr.tiers && wr.tiers.length > 0) {
+      if (wr.calcMode === 'match') {
+        // 匹配模式：第一行携带保底价/封顶价（起步价列留空）
+        wr.tiers.forEach(function(t, idx) {
+          var to = t.to === Infinity ? '' : t.to;
+          var fl = idx === 0 ? (wr.floorPrice || '') : '';
+          var cl = idx === 0 ? (wr.ceilPrice || '') : '';
+          csv += region+','+rule['燃油类型']+','+rule['车型']+','+rule['车长']+','+rule['适用范围']+',按重量,匹配,'+t.from+','+to+','+t.rate+',,'+fl+','+cl+'\n';
+        });
+      } else {
+        // 累加模式
+        csv += region+','+rule['燃油类型']+','+rule['车型']+','+rule['车长']+','+rule['适用范围']+',按重量,累加,0,'+wr.baseAmount+',0,'+wr.base+','+wr.floorPrice+','+wr.ceilPrice+'\n';
+        wr.tiers.forEach(function(t) {
+          var to = t.to === Infinity ? '' : t.to;
+          csv += region+','+rule['燃油类型']+','+rule['车型']+','+rule['车长']+','+rule['适用范围']+',按重量,累加,'+t.from+','+to+','+t.rate+',0,0,0\n';
+        });
+      }
+    }
+    if (mr && mr.tiers && mr.tiers.length > 0) {
+      if (mr.calcMode === 'match') {
+        mr.tiers.forEach(function(t) {
+          var to = t.to === Infinity ? '' : t.to;
+          csv += region+','+rule['燃油类型']+','+rule['车型']+','+rule['车长']+','+rule['适用范围']+',按里程,匹配,'+t.from+','+to+','+t.rate+',,\n';
+        });
+      } else {
+        csv += region+','+rule['燃油类型']+','+rule['车型']+','+rule['车长']+','+rule['适用范围']+',按里程,累加,0,'+mr.baseAmount+',0,'+mr.base+',,\n';
+        mr.tiers.forEach(function(t) {
+          var to = t.to === Infinity ? '' : t.to;
+          csv += region+','+rule['燃油类型']+','+rule['车型']+','+rule['车长']+','+rule['适用范围']+',按里程,累加,'+t.from+','+to+','+t.rate+',,,\n';
+        });
+      }
+    }
+  });
+  var blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '物流报价规则表_v3.csv';
+  a.click();
+}
+
+function resetDefaultRules() {
+  if (!confirm('确定恢复默认报价规则？自定义规则将被清除')) return;
+  localStorage.removeItem('logistics_rules_v5');
+  ruleList = JSON.parse(JSON.stringify(defaultRules));
+  buildScopeGroupMap();
+  initFilterOptions();
+  initScopeSelector();
+  calculate();
+  document.getElementById('ruleStatus').textContent = '已恢复默认规则，共 '+ruleList.length+' 条';
+}
+
+// ========== 事件绑定（避免内联onclick） ==========
+document.addEventListener('DOMContentLoaded', function() {
+  initRules();
+
+  document.getElementById('btnCalc').addEventListener('click', calculate);
+
+  document.getElementById('fuelType').addEventListener('change', function(){updateFilterOptions();calculate();matrixScopesInited=false;matrixRemovedScopes.clear();});
+  document.getElementById('vehicleType').addEventListener('change', function(){updateFilterOptions();calculate();matrixScopesInited=false;matrixRemovedScopes.clear();});
+  document.getElementById('vehicleLength').addEventListener('change', function(){updateFilterOptions();calculate();matrixScopesInited=false;matrixRemovedScopes.clear();});
+  document.getElementById('scope').addEventListener('change', function(){calculate();});
+  document.getElementById('weight').addEventListener('input', function(){calculate();});
+  document.getElementById('distance').addEventListener('input', function(){calculate();});
+
+  document.getElementById('scopeSearch').addEventListener('input', filterScopes);
+
+  document.getElementById('btnSelectAll').addEventListener('click', function() {
+    var allSelected = true;
+    document.querySelectorAll('.scope-chip').forEach(function(c) {
+      if (!c.classList.contains('filtered-out') && !c.classList.contains('active')) allSelected = false;
+    });
+    document.querySelectorAll('.scope-chip').forEach(function(c) {
+      if (!c.classList.contains('filtered-out')) {
+        if (allSelected) selectedScopes.delete(c.getAttribute('data-scope'));
+        else selectedScopes.add(c.getAttribute('data-scope'));
+      }
+    });
+    document.querySelectorAll('.scope-chip').forEach(function(c) {
+      c.classList.toggle('active', selectedScopes.has(c.getAttribute('data-scope')));
+    });
+    updateGroupCheckboxes();
+    calculate();
+  });
+
+  document.getElementById('btnGroupMode').addEventListener('click', function() {
+    groupMode = !groupMode;
+    this.classList.toggle('active', groupMode);
+    this.textContent = groupMode ? '取消分组' : '分组折叠';
+    if (groupMode) {
+      Object.keys(groupCollapsed).forEach(function(g){groupCollapsed[g]=true;});
+      initScopeSelector();
+    } else {
+      Object.keys(groupCollapsed).forEach(function(g){groupCollapsed[g]=false;});
+      initScopeSelector();
+    }
+  });
+
+  document.getElementById('ruleToggle').addEventListener('click', toggleRules);
+
+  document.getElementById('btnImport').addEventListener('click', function(){document.getElementById('importFile').click();});
+  document.getElementById('importFile').addEventListener('change', importRulesCSV);
+  document.getElementById('btnExport').addEventListener('click', exportRulesCSV);
+  document.getElementById('btnDownloadTpl').addEventListener('click', exportRulesCSV);
+  document.getElementById('btnReset').addEventListener('click', resetDefaultRules);
+
+  document.getElementById('regionSelector').addEventListener('click', function(e) {
+    var chip = e.target.closest('.scope-chip');
+    var header = e.target.closest('.scope-group-header');
+
+    if (chip) {
+      var scope = chip.getAttribute('data-scope');
+      if (selectedScopes.has(scope)) {
+        if (selectedScopes.size > 1) selectedScopes.delete(scope);
+      } else {
+        selectedScopes.add(scope);
+      }
+      chip.classList.toggle('active', selectedScopes.has(scope));
+      updateGroupCheckboxes();
+      calculate();
+      return;
+    }
+
+    if (header) {
+      var gn = header.getAttribute('data-group');
+      if (e.target.closest('.group-check')) return;
+      groupCollapsed[gn] = !groupCollapsed[gn];
+      var body = header.nextElementSibling;
+      var arrow = header.querySelector('.arrow');
+      if (body) body.classList.toggle('collapsed', groupCollapsed[gn]);
+      if (arrow) arrow.classList.toggle('collapsed', groupCollapsed[gn]);
+    }
+  });
+
+  document.getElementById('regionSelector').addEventListener('change', function(e) {
+    if (e.target.classList.contains('group-cb')) {
+      var gn = e.target.getAttribute('data-group');
+      var checked = e.target.checked;
+      var group = e.target.closest('.scope-group');
+      if (group) {
+        group.querySelectorAll('.scope-chip').forEach(function(c) {
+          if (!c.classList.contains('filtered-out')) {
+            var s = c.getAttribute('data-scope');
+            if (checked) selectedScopes.add(s);
+            else if (selectedScopes.size > 1) selectedScopes.delete(s);
+            c.classList.toggle('active', selectedScopes.has(s));
+          }
+        });
+      }
+      calculate();
+    }
+  });
+
+  document.getElementById('compareResult').addEventListener('click', function(e) {
+    var th = e.target.closest('.compare-table th[data-sort]');
+    if (th) {
+      var col = th.getAttribute('data-sort');
+      if (compareSortCol === col) compareSortDir = compareSortDir === 'asc' ? 'desc' : 'asc';
+      else { compareSortCol = col; compareSortDir = 'asc'; }
+      updateCompare();
+      return;
+    }
+    var btn = e.target.closest('#btnShowAll');
+    if (btn) {
+      document.querySelectorAll('.compare-table tbody tr').forEach(function(tr){tr.style.display='';});
+      btn.closest('.collapse-toggle').style.display = 'none';
+    }
+  });
+
+  // Matrix scope search input (debounced to avoid IME/focus issues)
+  document.getElementById('ruleContent').addEventListener('input', function(e) {
+    if (e.target.id === 'matrixScopeSearch') {
+      matrixScopeSearch = e.target.value;
+      clearTimeout(matrixSearchTimer);
+      matrixSearchTimer = setTimeout(function() {
+        renderRules();
+        var inp = document.getElementById('matrixScopeSearch');
+        if (inp) { inp.focus(); }
+      }, 300);
+    }
+  });
+
+  // Group checkbox change (scope-level select-all per group)
+  document.getElementById('ruleContent').addEventListener('change', function(e) {
+    if (e.target.classList.contains('group-cb') && e.target.hasAttribute('data-mgroup')) {
+      var gn = e.target.getAttribute('data-mgroup');
+      var checked = e.target.checked;
+      var group = e.target.closest('.scope-group');
+      if (group) {
+        group.querySelectorAll('.scope-chip').forEach(function(c) {
+          var s = c.getAttribute('data-mscope');
+          if (s) {
+            if (checked) {
+              matrixSelectedScopes.add(s);
+              matrixRemovedScopes.delete(s);
+            } else {
+              matrixSelectedScopes.delete(s);
+              matrixRemovedScopes.add(s);
+            }
+            c.classList.toggle('active', matrixSelectedScopes.has(s));
+          }
+        });
+      }
+      renderRules();
+    }
+  });
+
+  document.getElementById('ruleContent').addEventListener('click', function(e) {
+    // Mode filter buttons
+    var modeBtn = e.target.closest('[data-mode]');
+    if (modeBtn) {
+      matrixModeFilter = modeBtn.getAttribute('data-mode');
+      renderRules();
+      return;
+    }
+    // Select all / Clear all buttons
+    if (e.target.id === 'matrixScopeSelectAll') {
+      var ft2 = document.getElementById('fuelType').value;
+      var vt2 = document.getElementById('vehicleType').value;
+      var vl2 = parseFloat(document.getElementById('vehicleLength').value);
+      ruleList.filter(function(r){return r['燃油类型']===ft2 && r['车型']===vt2 && r['车长']===vl2;}).forEach(function(r){
+        matrixSelectedScopes.add(r['适用范围']);
+        matrixRemovedScopes.delete(r['适用范围']);
+      });
+      renderRules();
+      return;
+    }
+    if (e.target.id === 'matrixScopeClearAll') {
+      var ft3 = document.getElementById('fuelType').value;
+      var vt3 = document.getElementById('vehicleType').value;
+      var vl3 = parseFloat(document.getElementById('vehicleLength').value);
+      ruleList.filter(function(r){return r['燃油类型']===ft3 && r['车型']===vt3 && r['车长']===vl3;}).forEach(function(r){
+        matrixRemovedScopes.add(r['适用范围']);
+      });
+      matrixSelectedScopes.clear();
+      renderRules();
+      return;
+    }
+    // Scope chip toggle
+    var scopeChip = e.target.closest('[data-mscope]');
+    if (scopeChip) {
+      var scope = scopeChip.getAttribute('data-mscope');
+      if (matrixSelectedScopes.has(scope)) {
+        matrixSelectedScopes.delete(scope);
+        matrixRemovedScopes.add(scope);
+      } else {
+        matrixSelectedScopes.add(scope);
+        matrixRemovedScopes.delete(scope);
+      }
+      renderRules();
+      return;
+    }
+    // Group header collapse/expand
+    var groupHeader = e.target.closest('[data-mgroup]');
+    if (groupHeader && !e.target.closest('.group-check')) {
+      var gn = groupHeader.getAttribute('data-mgroup');
+      groupCollapsed['m_'+gn] = !groupCollapsed['m_'+gn];
+      var body = groupHeader.nextElementSibling;
+      var arrow = groupHeader.querySelector('.arrow');
+      if (body) body.classList.toggle('collapsed');
+      if (arrow) arrow.classList.toggle('collapsed');
+      return;
+    }
+    var th = e.target.closest('.matrix-table th.sortable');
+    if (th) {
+      var sortKey = th.getAttribute('data-sort');
+      if (matrixSortCol === sortKey) matrixSortDir = matrixSortDir === 'asc' ? 'desc' : 'asc';
+      else { matrixSortCol = sortKey; matrixSortDir = 'asc'; }
+      renderRules();
+      return;
+    }
+    var tr = e.target.closest('tr[data-expand]');
+    if (tr) {
+      var key = tr.getAttribute('data-expand');
+      if (expandedRows.has(key)) expandedRows.delete(key);
+      else expandedRows.add(key);
+      renderRules();
+    }
+  });
+});
+
+function updateGroupCheckboxes() {
+  document.querySelectorAll('.group-cb').forEach(function(cb) {
+    var gn = cb.getAttribute('data-group');
+    var group = cb.closest('.scope-group');
+    if (!group) return;
+    var chips = group.querySelectorAll('.scope-chip:not(.filtered-out)');
+    var allActive = chips.length > 0;
+    chips.forEach(function(c) { if (!selectedScopes.has(c.getAttribute('data-scope'))) allActive = false; });
+    cb.checked = allActive;
+  });
+}
+
+})();
+</script>
+</body>
+</html>
