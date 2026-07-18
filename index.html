@@ -617,8 +617,13 @@ function initFilterOptions() {
   fillSelect('vehicleLength', vehicleLengths.map(function(l){return l+'m';}));
   fillSelect('scope', scopes);
   if (fuelTypes.length) document.getElementById('fuelType').value = fuelTypes[0];
-  if (vehicleTypes.length) document.getElementById('vehicleType').value = vehicleTypes[Math.min(0, vehicleTypes.length-1)];
-  if (vehicleLengths.length) document.getElementById('vehicleLength').value = vehicleLengths[Math.min(0, vehicleLengths.length-1)] + 'm';
+  if (vehicleTypes.length) {
+    document.getElementById('vehicleType').value = vehicleTypes.indexOf('厢式车') >= 0 ? '厢式车' : vehicleTypes[0];
+  }
+  if (vehicleLengths.length) {
+    var defLen = vehicleLengths.indexOf(4.2) >= 0 ? 4.2 : vehicleLengths[0];
+    document.getElementById('vehicleLength').value = defLen + 'm';
+  }
   if (scopes.length) document.getElementById('scope').value = scopes[0];
   selectedScopes = new Set(scopes);
 }
@@ -769,8 +774,8 @@ function calculate() {
   var wr = calcWeightFinal(weight, rule);
   var dr = calcMileageFinal(distance, rule);
 
-  // 票数影响匹配模式的重量计费：先×票数，再应用保底封顶
-  if (wr.isMatch && tickets > 1) {
+  // 票数影响所有按重量计费：先×票数，再应用保底封顶
+  if (tickets > 1 && wr.valid) {
     var multiplied = Math.round(wr.rawTotal * tickets * 100) / 100;
     var floor = wr.floorPrice || 0;
     var ceil = wr.ceilPrice || 0;
@@ -813,7 +818,7 @@ function calculate() {
     wc.classList.remove('disabled');
     wpw.innerHTML = '<div class="price"><span class="yen">¥</span><span>'+wr.finalTotal.toFixed(2)+'</span></div>';
     var wsub = weight+'kg → '+ft+' '+vt+' '+vl+'m';
-    if (wr.isMatch && tickets > 1) wsub += ' <span style="font-size:11px;color:#4F46E5;font-weight:600">×'+tickets+'票</span>';
+    if (tickets > 1) wsub += ' <span style="font-size:11px;color:#4F46E5;font-weight:600">×'+tickets+'票</span>';
     if (wr.floorPrice > 0) wsub += ' <span class="adjust-tag floor">保底¥'+wr.floorPrice.toFixed(2)+'</span>';
     if (wr.ceilPrice > 0) wsub += ' <span class="adjust-tag ceil">封顶¥'+wr.ceilPrice.toFixed(2)+'</span>';
     document.getElementById('weightSub').innerHTML = wsub;
@@ -874,15 +879,15 @@ function renderWeightBreakdown(result, hasInput) {
     var valCls = d.type==='floor' ? ' style="color:var(--warning);font-weight:700"' : (d.type==='ceil' ? ' style="color:var(--success);font-weight:700"' : (result.isMatch ? ' style="color:#7C3AED;font-weight:700"' : ''));
     html += '<div class="breakdown-row '+cls+'"><span class="desc">'+d.desc+'</span><span class="val"'+valCls+'>'+(d.amount>=0?'¥':'-¥')+Math.abs(d.amount).toFixed(2)+'</span></div>';
   });
+  if (result.tickets && result.tickets > 1) {
+    var multiplied = Math.round(result.rawTotal * result.tickets * 100) / 100;
+    html += '<div class="breakdown-row match-tier"><span class="desc">单趟小计</span><span class="val" style="color:#7C3AED;font-weight:600">¥'+result.rawTotal.toFixed(2)+'</span></div>';
+    html += '<div class="breakdown-row match-tier"><span class="desc">× '+result.tickets+' 票</span><span class="val" style="color:#4F46E5;font-weight:700">¥'+multiplied.toFixed(2)+'</span></div>';
+  }
   if (result.isMatch) {
-    if (result.tickets && result.tickets > 1) {
-      var multiplied = Math.round(result.rawTotal * result.tickets * 100) / 100;
-      html += '<div class="breakdown-row match-tier"><span class="desc">单趟小计</span><span class="val" style="color:#7C3AED;font-weight:600">¥'+result.rawTotal.toFixed(2)+'</span></div>';
-      html += '<div class="breakdown-row match-tier"><span class="desc">× '+result.tickets+' 票</span><span class="val" style="color:#4F46E5;font-weight:700">¥'+multiplied.toFixed(2)+'</span></div>';
-    }
     html += '<div class="breakdown-row total"><span class="desc">合计'+(result.tickets>1?'（含票数）':'（全额费率）')+'</span><span class="val" style="color:#7C3AED;font-weight:800">¥'+result.finalTotal.toFixed(2)+'</span></div>';
   } else {
-    html += '<div class="breakdown-row total"><span class="desc">合计</span><span class="val">¥'+result.finalTotal.toFixed(2)+'</span></div>';
+    html += '<div class="breakdown-row total"><span class="desc">合计'+(result.tickets>1?'（含票数）':'')+'</span><span class="val">¥'+result.finalTotal.toFixed(2)+'</span></div>';
   }
   // 展示保底价/封顶价参考信息（无论是否触发）
   var fp = result.floorPrice || 0;
@@ -1016,8 +1021,8 @@ function updateCompare(w, d) {
   var results = filteredRules.map(function(rule) {
     var wr = calcWeightFinal(weight, rule);
     var dr = calcMileageFinal(distance, rule);
-    // 票数影响匹配模式：先×票数，再应用保底封顶
-    if (wr.isMatch && wr.valid && tickets > 1) {
+    // 票数影响所有按重量计费：先×票数，再应用保底封顶
+    if (wr.valid && tickets > 1) {
       var mult = Math.round(wr.rawTotal * tickets * 100) / 100;
       var fl = rule.weightRule.floorPrice || 0;
       var cl = rule.weightRule.ceilPrice || 0;
@@ -1030,7 +1035,7 @@ function updateCompare(w, d) {
     var dv = dr.valid ? dr.total : 0;
     var fin = 0, basis = '-';
     if (wr.valid && dr.valid && weight > 0 && distance > 0) { fin = Math.max(wv, dv); basis = wv >= dv ? '重量' : '里程'; }
-    else if (wr.valid && weight > 0) { fin = wv; basis = tickets > 1 && wr.isMatch ? '仅重量(×'+tickets+'票)' : '仅重量'; }
+    else if (wr.valid && weight > 0) { fin = wv; basis = tickets > 1 ? '仅重量(×'+tickets+'票)' : '仅重量'; }
     else if (dr.valid && distance > 0) { fin = dv; basis = '仅里程'; }
     return {
       scope:rule['适用范围'],region:rule['区域']||'',
