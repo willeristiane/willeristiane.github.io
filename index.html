@@ -51,7 +51,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
 .card-body { padding:24px; }
 
 /* Input */
-.input-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+.input-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:20px; }
 .input-group label { display:block; font-size:13px; font-weight:600; color:var(--gray-600); margin-bottom:8px; }
 .input-group label .unit { font-weight:400; color:var(--gray-400); }
 .input-row { display:flex; gap:8px; align-items:center; }
@@ -302,8 +302,6 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
           <label>车长 <span class="unit">(m)</span></label>
           <select id="vehicleLength"></select>
         </div>
-      </div>
-      <div class="input-grid" style="margin-top:16px">
         <div class="input-group">
           <label>适用范围</label>
           <select id="scope"></select>
@@ -313,6 +311,13 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
           <div class="input-row">
             <input type="number" id="weight" placeholder="输入重量" min="0">
             <span class="input-suffix">kg</span>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>票数 <span class="unit">(仅匹配模式)</span></label>
+          <div class="input-row">
+            <input type="number" id="ticketCount" placeholder="默认1" min="1" value="1">
+            <span class="input-suffix">票</span>
           </div>
         </div>
         <div class="input-group">
@@ -405,9 +410,13 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn-secondary" id="btnImport">📥 导入CSV报价表</button>
         <button class="btn-secondary" id="btnExport">📤 导出当前规则</button>
+        <button class="btn-secondary" id="btnExportConfig" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE">💾 导出配置</button>
+        <button class="btn-secondary" id="btnImportConfig" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE">📂 导入配置</button>
         <button class="btn-danger" id="btnReset">↺ 恢复默认</button>
       </div>
       <input type="file" id="importFile" class="file-input" accept=".csv,.txt">
+      <input type="file" id="importConfigFile" class="file-input" accept=".json">
+      <div style="margin-top:8px;font-size:11px;color:var(--gray-400)">💾 导出配置：保存当前所有规则+筛选状态为JSON文件；📂 导入配置：从JSON文件恢复完整状态（适用于跨设备/刷新后恢复）</div>
     </div>
   </div>
 </div>
@@ -529,33 +538,55 @@ var matrixScopesInited = false;
 var matrixRemovedScopes = new Set();
 
 // ========== 初始化 ==========
+function safeStringify(obj) {
+  return JSON.stringify(obj, function(key, value) {
+    if (value === Infinity) return 99999;
+    if (typeof value === 'number' && isNaN(value)) return 0;
+    return value;
+  });
+}
+function safeParse(json) {
+  return JSON.parse(json, function(key, value) {
+    if (value === 99999 && key === 'to') return Infinity;
+    return value;
+  });
+}
+function saveToLocalStorage(showSuccess) {
+  try {
+    localStorage.setItem('logistics_rules_v5', safeStringify(ruleList));
+    if (showSuccess) {
+      var matchCount = ruleList.filter(function(r){ return (r.weightRule&&r.weightRule.calcMode==='match')||(r.mileageRule&&r.mileageRule.calcMode==='match'); }).length;
+      var statusText = '✅ 已加载本地缓存（'+ruleList.length+' 条规则' + (matchCount>0 ? '，含'+matchCount+'条匹配模式':'') + '）';
+      document.getElementById('ruleStatus').textContent = statusText;
+    }
+  } catch(e) {
+    console.warn('localStorage写入失败:', e);
+    document.getElementById('ruleStatus').textContent = '⚠️ 本地缓存写入失败，数据仅在当前会话有效。建议使用「导出配置」保存到文件。';
+  }
+}
 function initRules() {
-  var saved = localStorage.getItem('logistics_rules_v5');
   var loaded = false;
-  if (saved) {
-    try {
-      var parsed = JSON.parse(saved);
+  try {
+    var saved = localStorage.getItem('logistics_rules_v5');
+    if (saved) {
+      var parsed = safeParse(saved);
       if (validateRules(parsed)) {
         ruleList = parsed;
-        ruleList.forEach(function(rule) {
-          if (rule.weightRule && rule.weightRule.tiers) rule.weightRule.tiers.forEach(function(t) { if (t.to === 99999) t.to = Infinity; });
-          if (rule.mileageRule && rule.mileageRule.tiers) rule.mileageRule.tiers.forEach(function(t) { if (t.to === 99999) t.to = Infinity; });
-          if (!rule.weightRule.calcMode) rule.weightRule.calcMode = 'tiered';
-          if (!rule.mileageRule.calcMode) rule.mileageRule.calcMode = 'tiered';
-          if (rule.weightRule && typeof rule.weightRule.floorPrice !== 'number') rule.weightRule.floorPrice = 0;
-          if (rule.weightRule && typeof rule.weightRule.ceilPrice !== 'number') rule.weightRule.ceilPrice = 0;
-        });
         loaded = true;
         var matchCount = ruleList.filter(function(r){ return (r.weightRule&&r.weightRule.calcMode==='match')||(r.mileageRule&&r.mileageRule.calcMode==='match'); }).length;
-        var statusText = '当前使用自定义报价规则（本地缓存），共 ' + ruleList.length + ' 条';
-        if (matchCount > 0) statusText += '，其中 ' + matchCount + ' 条含匹配模式';
+        var statusText = '✅ 已加载本地缓存（'+ruleList.length+' 条规则' + (matchCount>0 ? '，含'+matchCount+'条匹配模式':'') + '）';
         document.getElementById('ruleStatus').textContent = statusText;
+      } else {
+        console.warn('缓存数据校验失败，使用默认规则');
       }
-    } catch(e) { console.warn('缓存损坏'); }
+    }
+  } catch(e) {
+    console.warn('localStorage读取失败:', e);
+    document.getElementById('ruleStatus').textContent = '⚠️ 本地缓存不可用，建议使用「导出配置」保存数据。';
   }
   if (!loaded) {
     ruleList = JSON.parse(JSON.stringify(defaultRules));
-    localStorage.removeItem('logistics_rules_v5');
+    try { localStorage.removeItem('logistics_rules_v5'); } catch(e){}
     document.getElementById('ruleStatus').textContent = '当前使用内置默认报价规则，共 ' + ruleList.length + ' 条';
   }
   buildScopeGroupMap();
@@ -621,11 +652,20 @@ function calcMatchPrice(amount, tiers, unit) {
     var tier = tiers[i];
     // 区间 [from, to)，Infinity 用 Infinity 表示
     if (amount >= tier.from && (tier.to === Infinity || amount < tier.to)) {
-      var total = amount * tier.rate;
       var toL = tier.to === Infinity ? '∞' : tier.to;
+      var total, desc;
+      if (tier.rate > 10) {
+        // 费率>10时，最终结果直接等于该区间费率（固定费用）
+        total = tier.rate;
+        desc = tier.from + '-' + toL + ' ' + unit + '：费率 ¥' + tier.rate.toFixed(2) + '（费率>10，直接取费率）';
+      } else {
+        // 费率≤10时，保持原逻辑：数量 × 费率
+        total = amount * tier.rate;
+        desc = tier.from + '-' + toL + ' ' + unit + '：' + amount + ' × ¥' + tier.rate.toFixed(2);
+      }
       return {
         total: Math.round(total * 100) / 100,
-        detail: [{desc: tier.from + '-' + toL + ' ' + unit + '：' + amount + ' × ¥' + tier.rate.toFixed(2), amount: Math.round(total * 100) / 100}]
+        detail: [{desc: desc, amount: Math.round(total * 100) / 100}]
       };
     }
   }
@@ -710,6 +750,8 @@ function calcMileageFinal(distance, rule) {
 function calculate() {
   var weight = parseFloat(document.getElementById('weight').value) || 0;
   var distance = parseFloat(document.getElementById('distance').value) || 0;
+  var tickets = parseInt(document.getElementById('ticketCount').value) || 1;
+  if (tickets < 1) tickets = 1;
   var ft = document.getElementById('fuelType').value;
   var vt = document.getElementById('vehicleType').value;
   var vl = parseFloat(document.getElementById('vehicleLength').value);
@@ -727,11 +769,31 @@ function calculate() {
   var wr = calcWeightFinal(weight, rule);
   var dr = calcMileageFinal(distance, rule);
 
+  // 票数影响匹配模式的重量计费：先×票数，再应用保底封顶
+  if (wr.isMatch && tickets > 1) {
+    var multiplied = Math.round(wr.rawTotal * tickets * 100) / 100;
+    var floor = wr.floorPrice || 0;
+    var ceil = wr.ceilPrice || 0;
+    var finalAfterTickets = multiplied;
+    wr.hasFloor = false;
+    wr.hasCeil = false;
+    if (floor > 0 && multiplied < floor) {
+      finalAfterTickets = floor;
+      wr.hasFloor = true;
+    } else if (ceil > 0 && multiplied > ceil) {
+      finalAfterTickets = ceil;
+      wr.hasCeil = true;
+    }
+    wr.finalTotal = finalAfterTickets;
+    wr.tickets = tickets;
+  }
+
   // 重量卡片label
   var weightLabel = document.getElementById('weightLabel');
   var distLabel = document.getElementById('distLabel');
   if (wr.isMatch) {
     var matchTag = '📦 重量计费（匹配模式）<span class="match-tag">🎯</span>';
+    if (tickets > 1) matchTag += ' <span class="adjust-tag" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE">×'+tickets+'票</span>';
     if (wr.floorPrice > 0) matchTag += ' <span class="adjust-tag floor'+(wr.hasFloor?'':'')+'">保底¥'+wr.floorPrice.toFixed(2)+'</span>';
     if (wr.ceilPrice > 0) matchTag += ' <span class="adjust-tag ceil'+(wr.hasCeil?'':'')+'">封顶¥'+wr.ceilPrice.toFixed(2)+'</span>';
     weightLabel.innerHTML = matchTag;
@@ -751,6 +813,7 @@ function calculate() {
     wc.classList.remove('disabled');
     wpw.innerHTML = '<div class="price"><span class="yen">¥</span><span>'+wr.finalTotal.toFixed(2)+'</span></div>';
     var wsub = weight+'kg → '+ft+' '+vt+' '+vl+'m';
+    if (wr.isMatch && tickets > 1) wsub += ' <span style="font-size:11px;color:#4F46E5;font-weight:600">×'+tickets+'票</span>';
     if (wr.floorPrice > 0) wsub += ' <span class="adjust-tag floor">保底¥'+wr.floorPrice.toFixed(2)+'</span>';
     if (wr.ceilPrice > 0) wsub += ' <span class="adjust-tag ceil">封顶¥'+wr.ceilPrice.toFixed(2)+'</span>';
     document.getElementById('weightSub').innerHTML = wsub;
@@ -812,7 +875,12 @@ function renderWeightBreakdown(result, hasInput) {
     html += '<div class="breakdown-row '+cls+'"><span class="desc">'+d.desc+'</span><span class="val"'+valCls+'>'+(d.amount>=0?'¥':'-¥')+Math.abs(d.amount).toFixed(2)+'</span></div>';
   });
   if (result.isMatch) {
-    html += '<div class="breakdown-row total"><span class="desc">合计（全额费率）</span><span class="val" style="color:#7C3AED;font-weight:800">¥'+result.finalTotal.toFixed(2)+'</span></div>';
+    if (result.tickets && result.tickets > 1) {
+      var multiplied = Math.round(result.rawTotal * result.tickets * 100) / 100;
+      html += '<div class="breakdown-row match-tier"><span class="desc">单趟小计</span><span class="val" style="color:#7C3AED;font-weight:600">¥'+result.rawTotal.toFixed(2)+'</span></div>';
+      html += '<div class="breakdown-row match-tier"><span class="desc">× '+result.tickets+' 票</span><span class="val" style="color:#4F46E5;font-weight:700">¥'+multiplied.toFixed(2)+'</span></div>';
+    }
+    html += '<div class="breakdown-row total"><span class="desc">合计'+(result.tickets>1?'（含票数）':'（全额费率）')+'</span><span class="val" style="color:#7C3AED;font-weight:800">¥'+result.finalTotal.toFixed(2)+'</span></div>';
   } else {
     html += '<div class="breakdown-row total"><span class="desc">合计</span><span class="val">¥'+result.finalTotal.toFixed(2)+'</span></div>';
   }
@@ -894,7 +962,7 @@ function initScopeSelector() {
   var hintEl = document.getElementById('matchModeHint');
   var matchRules = ruleList.filter(function(r){ return (r.weightRule&&r.weightRule.calcMode==='match')||(r.mileageRule&&r.mileageRule.calcMode==='match'); });
   if (matchRules.length > 0) {
-    hintEl.textContent = '📌 当前有 ' + matchRules.length + ' 条规则使用匹配模式（区间内数据×该区间费率）';
+    hintEl.textContent = '📌 当前有 ' + matchRules.length + ' 条规则使用匹配模式（费率≤10：数据×费率；费率>10：直接取费率）';
     hintEl.style.display = '';
   } else {
     hintEl.style.display = 'none';
@@ -924,6 +992,8 @@ function filterScopes() {
 function updateCompare(w, d) {
   var weight = (typeof w !== 'undefined') ? w : (parseFloat(document.getElementById('weight').value) || 0);
   var distance = (typeof d !== 'undefined') ? d : (parseFloat(document.getElementById('distance').value) || 0);
+  var tickets = parseInt(document.getElementById('ticketCount').value) || 1;
+  if (tickets < 1) tickets = 1;
   var ft = document.getElementById('fuelType').value;
   var vt = document.getElementById('vehicleType').value;
   var vl = parseFloat(document.getElementById('vehicleLength').value);
@@ -946,11 +1016,21 @@ function updateCompare(w, d) {
   var results = filteredRules.map(function(rule) {
     var wr = calcWeightFinal(weight, rule);
     var dr = calcMileageFinal(distance, rule);
+    // 票数影响匹配模式：先×票数，再应用保底封顶
+    if (wr.isMatch && wr.valid && tickets > 1) {
+      var mult = Math.round(wr.rawTotal * tickets * 100) / 100;
+      var fl = rule.weightRule.floorPrice || 0;
+      var cl = rule.weightRule.ceilPrice || 0;
+      var ft = mult;
+      if (fl > 0 && mult < fl) ft = fl;
+      else if (cl > 0 && mult > cl) ft = cl;
+      wr.finalTotal = ft;
+    }
     var wv = wr.valid ? wr.finalTotal : 0;
     var dv = dr.valid ? dr.total : 0;
     var fin = 0, basis = '-';
     if (wr.valid && dr.valid && weight > 0 && distance > 0) { fin = Math.max(wv, dv); basis = wv >= dv ? '重量' : '里程'; }
-    else if (wr.valid && weight > 0) { fin = wv; basis = '仅重量'; }
+    else if (wr.valid && weight > 0) { fin = wv; basis = tickets > 1 && wr.isMatch ? '仅重量(×'+tickets+'票)' : '仅重量'; }
     else if (dr.valid && distance > 0) { fin = dv; basis = '仅里程'; }
     return {
       scope:rule['适用范围'],region:rule['区域']||'',
@@ -1423,7 +1503,7 @@ function buildMatrix(rules, type, title) {
       // 左栏：阶梯明细
       html += '<div class="detail-panel"><h4>阶梯明细'+(d.isMatch?' <span class="match-badge">匹配模式</span>':' <span class="tiered-badge">累加模式</span>')+'</h4>';
       if (d.isMatch) {
-        html += '<div style="font-size:11px;color:var(--gray-500);margin-bottom:8px">匹配模式：数据落在哪个区间，直接用 数据 × 该区间费率</div>';
+        html += '<div style="font-size:11px;color:var(--gray-500);margin-bottom:8px">匹配模式：费率≤10 → 数据×费率；费率>10 → 直接取费率作为固定费用</div>';
         // 使用与矩阵列头完全一致的区间展示
         if (stdIntervals.length > 0) {
           stdIntervals.forEach(function(iv) {
@@ -1501,8 +1581,15 @@ function buildMatrix(rules, type, title) {
           if (hitTier) {
             var toL = hitTier.to === Infinity ? '∞' : hitTier.to;
             html += '<div class="sample-step">→ 落在 <span class="step-tier">'+hitTier.from+'-'+toL+' '+unit+'</span> 区间</div>';
-            var raw = Math.round(s * hitTier.rate * 100) / 100;
-            html += '<div class="sample-step">→ <span class="step-calc">'+s+' × ¥'+hitTier.rate.toFixed(2)+' = ¥'+raw.toFixed(2)+'</span></div>';
+            var raw, calcText;
+            if (hitTier.rate > 10) {
+              raw = hitTier.rate;
+              calcText = '费率 ¥'+hitTier.rate.toFixed(2)+' > 10，直接取费率 = ¥'+raw.toFixed(2);
+            } else {
+              raw = Math.round(s * hitTier.rate * 100) / 100;
+              calcText = s+' × ¥'+hitTier.rate.toFixed(2)+' = ¥'+raw.toFixed(2);
+            }
+            html += '<div class="sample-step">→ <span class="step-calc">'+calcText+'</span></div>';
             var final = raw;
             if (isWeight && floorP > 0 && raw < floorP) {
               html += '<div class="sample-step">→ <span class="step-adjust floor">低于保底价 ¥'+floorP.toFixed(2)+'，按保底计</span></div>';
@@ -1559,12 +1646,7 @@ function importRulesCSV(event) {
       var newRules = parseCSVToRules(text);
       if (!validateRules(newRules)) { showAlert('导入失败：未解析到有效计价规则'); return; }
       ruleList = newRules;
-      var saveData = JSON.parse(JSON.stringify(ruleList));
-      saveData.forEach(function(rule) {
-        if (rule.weightRule && rule.weightRule.tiers) rule.weightRule.tiers.forEach(function(t){if(t.to===Infinity)t.to=99999;});
-        if (rule.mileageRule && rule.mileageRule.tiers) rule.mileageRule.tiers.forEach(function(t){if(t.to===Infinity)t.to=99999;});
-      });
-      localStorage.setItem('logistics_rules_v5', JSON.stringify(saveData));
+      saveToLocalStorage();
       buildScopeGroupMap();
       var matchCount = ruleList.filter(function(r){ return (r.weightRule&&r.weightRule.calcMode==='match')||(r.mileageRule&&r.mileageRule.calcMode==='match'); }).length;
       var statusText = '导入成功！自定义报价规则，共 ' + ruleList.length + ' 条';
@@ -1766,6 +1848,78 @@ function resetDefaultRules() {
   document.getElementById('ruleStatus').textContent = '已恢复默认规则，共 '+ruleList.length+' 条';
 }
 
+function exportConfig() {
+  try {
+    var config = {
+      version: 'logistics_quote_v3_config',
+      exportTime: new Date().toISOString(),
+      rules: ruleList,
+      filters: {
+        fuelType: document.getElementById('fuelType').value,
+        vehicleType: document.getElementById('vehicleType').value,
+        vehicleLength: document.getElementById('vehicleLength').value,
+        scope: document.getElementById('scope').value,
+        weight: document.getElementById('weight').value,
+        distance: document.getElementById('distance').value,
+        ticketCount: document.getElementById('ticketCount').value
+      },
+      selectedScopes: Array.from(selectedScopes),
+      groupCollapsed: groupCollapsed
+    };
+    var json = safeStringify(config);
+    // pretty print (Infinity already replaced with 99999 by safeStringify)
+    json = JSON.stringify(JSON.parse(json), null, 2);
+    var blob = new Blob([json], {type: 'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '物流报价配置_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showAlert('配置已导出');
+  } catch(e) { showAlert('导出失败：'+e.message); }
+}
+
+function importConfig(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var config = safeParse(e.target.result);
+      if (config.version !== 'logistics_quote_v3_config' || !Array.isArray(config.rules)) {
+        showAlert('无效的配置文件'); return;
+      }
+      if (!validateRules(config.rules)) {
+        showAlert('配置中的规则数据无效'); return;
+      }
+      ruleList = config.rules;
+      // 恢复筛选器状态
+      if (config.filters) {
+        var f = config.filters;
+        if (f.fuelType) document.getElementById('fuelType').value = f.fuelType;
+        if (f.vehicleType) document.getElementById('vehicleType').value = f.vehicleType;
+        if (f.vehicleLength) document.getElementById('vehicleLength').value = f.vehicleLength;
+        if (f.scope) document.getElementById('scope').value = f.scope;
+        if (f.weight) document.getElementById('weight').value = f.weight;
+        if (f.distance) document.getElementById('distance').value = f.distance;
+        if (f.ticketCount) document.getElementById('ticketCount').value = f.ticketCount;
+      }
+      if (config.selectedScopes) selectedScopes = new Set(config.selectedScopes);
+      if (config.groupCollapsed) groupCollapsed = config.groupCollapsed;
+      saveToLocalStorage();
+      buildScopeGroupMap();
+      initFilterOptions();
+      initScopeSelector();
+      calculate();
+      showAlert('配置已导入，共 '+ruleList.length+' 条规则');
+    } catch(err) { showAlert('导入配置失败：'+err.message); }
+  };
+  reader.onerror = function(){ showAlert('文件读取失败'); };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
 // ========== 事件绑定（避免内联onclick） ==========
 document.addEventListener('DOMContentLoaded', function() {
   initRules();
@@ -1819,6 +1973,9 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btnExport').addEventListener('click', exportRulesCSV);
   document.getElementById('btnDownloadTpl').addEventListener('click', exportRulesCSV);
   document.getElementById('btnReset').addEventListener('click', resetDefaultRules);
+  document.getElementById('btnExportConfig').addEventListener('click', exportConfig);
+  document.getElementById('btnImportConfig').addEventListener('click', function(){document.getElementById('importConfigFile').click();});
+  document.getElementById('importConfigFile').addEventListener('change', importConfig);
 
   document.getElementById('regionSelector').addEventListener('click', function(e) {
     var chip = e.target.closest('.scope-chip');
