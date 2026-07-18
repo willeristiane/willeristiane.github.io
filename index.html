@@ -64,6 +64,19 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
 .btn-calc { width:100%; margin-top:20px; padding:14px; background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; transition:all .2s; box-shadow:0 4px 12px rgba(37,99,235,.3); }
 .btn-calc:hover { transform:translateY(-1px); box-shadow:0 6px 16px rgba(37,99,235,.4); }
 .btn-calc:active { transform:translateY(0); }
+.weight-groups-section { margin-top:16px; }
+.weight-groups-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.weight-groups-header .wg-label { font-size:13px; font-weight:600; color:var(--gray-600); }
+.btn-add-group { padding:4px 12px; background:#EEF2FF; border:1.5px solid #C7D2FE; border-radius:8px; font-size:12px; font-weight:600; color:#4F46E5; cursor:pointer; transition:all .2s; }
+.btn-add-group:hover { background:#E0E7FF; border-color:#A5B4FC; }
+.weight-group-row { display:flex; gap:10px; align-items:center; margin-bottom:8px; padding:10px 12px; background:var(--gray-50); border:1px solid var(--gray-200); border-radius:10px; }
+.weight-group-row .wg-index { font-size:12px; font-weight:700; color:var(--gray-400); min-width:24px; }
+.weight-group-row .wg-input-wrap { flex:1; }
+.weight-group-row .wg-input-wrap label { display:block; font-size:11px; color:var(--gray-400); margin-bottom:3px; font-weight:500; }
+.weight-group-row .wg-input-wrap input { width:100%; padding:8px 12px; border:1.5px solid var(--gray-200); border-radius:8px; font-size:14px; font-weight:600; outline:none; background:#fff; }
+.weight-group-row .wg-input-wrap input:focus { border-color:var(--primary-light); box-shadow:0 0 0 2px rgba(59,130,246,.08); }
+.btn-remove-group { width:28px; height:28px; border:none; background:var(--danger-bg); color:var(--danger); border-radius:6px; font-size:16px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .2s; flex-shrink:0; }
+.btn-remove-group:hover { background:#FEE2E2; }
 .btn-secondary { padding:8px 16px; background:#fff; border:2px solid var(--gray-200); border-radius:8px; font-size:13px; font-weight:600; color:var(--gray-700); cursor:pointer; transition:all .2s; }
 .btn-secondary:hover { border-color:var(--primary-light); color:var(--primary); }
 .btn-secondary.active { background:var(--primary); color:#fff; border-color:var(--primary); }
@@ -257,6 +270,8 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
   .breakdown-grid { grid-template-columns:1fr; }
   .summary-board { grid-template-columns:1fr 1fr; }
   .detail-inner { grid-template-columns:1fr; }
+  .weight-group-row { flex-wrap:wrap; }
+  .weight-group-row .wg-input-wrap { min-width:calc(50% - 20px); }
 }
 
 .fade-in { animation:fadeIn .3s ease-out; }
@@ -307,26 +322,19 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
           <select id="scope"></select>
         </div>
         <div class="input-group">
-          <label>货物重量 <span class="unit">(kg)</span></label>
-          <div class="input-row">
-            <input type="number" id="weight" placeholder="输入重量" min="0">
-            <span class="input-suffix">kg</span>
-          </div>
-        </div>
-        <div class="input-group">
-          <label>票数 <span class="unit">(仅匹配模式)</span></label>
-          <div class="input-row">
-            <input type="number" id="ticketCount" placeholder="默认1" min="1" value="1">
-            <span class="input-suffix">票</span>
-          </div>
-        </div>
-        <div class="input-group">
           <label>运输里程 <span class="unit">(km)</span></label>
           <div class="input-row">
             <input type="number" id="distance" placeholder="输入里程" min="0">
             <span class="input-suffix">km</span>
           </div>
         </div>
+      </div>
+      <div class="weight-groups-section" id="weightGroupsSection">
+        <div class="weight-groups-header">
+          <span class="wg-label">📦 货物重量 & 票数</span>
+          <button class="btn-add-group" id="btnAddGroup">＋ 添加一组</button>
+        </div>
+        <div id="weightGroupsContainer"></div>
       </div>
       <button class="btn-calc" id="btnCalc">🔍 计算运费</button>
     </div>
@@ -564,6 +572,67 @@ function saveToLocalStorage(showSuccess) {
     document.getElementById('ruleStatus').textContent = '⚠️ 本地缓存写入失败，数据仅在当前会话有效。建议使用「导出配置」保存到文件。';
   }
 }
+
+// ========== 多组重量管理 ==========
+var weightGroups = [{weight: '', tickets: 1}];
+
+function renderWeightGroups() {
+  var container = document.getElementById('weightGroupsContainer');
+  var html = '';
+  for (var i = 0; i < weightGroups.length; i++) {
+    var g = weightGroups[i];
+    html += '<div class="weight-group-row" data-index="'+i+'">';
+    html += '<span class="wg-index">#'+(i+1)+'</span>';
+    html += '<div class="wg-input-wrap"><label>重量 (kg)</label><input type="number" class="wg-weight" data-index="'+i+'" placeholder="输入重量" min="0" value="'+(g.weight!==''?g.weight:'')+'"></div>';
+    html += '<div class="wg-input-wrap" style="max-width:100px"><label>票数</label><input type="number" class="wg-tickets" data-index="'+i+'" placeholder="1" min="1" value="'+(g.tickets||1)+'"></div>';
+    if (weightGroups.length > 1) {
+      html += '<button class="btn-remove-group" data-index="'+i+'" title="删除此组">✕</button>';
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function addWeightGroup() {
+  weightGroups.push({weight: '', tickets: 1});
+  renderWeightGroups();
+  bindWeightGroupEvents();
+}
+
+function removeWeightGroup(index) {
+  if (weightGroups.length <= 1) return;
+  weightGroups.splice(index, 1);
+  renderWeightGroups();
+  bindWeightGroupEvents();
+}
+
+function bindWeightGroupEvents() {
+  var container = document.getElementById('weightGroupsContainer');
+  container.querySelectorAll('.wg-weight').forEach(function(input) {
+    input.addEventListener('input', function() {
+      var idx = parseInt(this.getAttribute('data-index'));
+      weightGroups[idx].weight = this.value === '' ? '' : parseFloat(this.value);
+      calculate();
+    });
+  });
+  container.querySelectorAll('.wg-tickets').forEach(function(input) {
+    input.addEventListener('input', function() {
+      var idx = parseInt(this.getAttribute('data-index'));
+      weightGroups[idx].tickets = Math.max(1, parseInt(this.value) || 1);
+      calculate();
+    });
+  });
+  container.querySelectorAll('.btn-remove-group').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      removeWeightGroup(parseInt(this.getAttribute('data-index')));
+    });
+  });
+}
+
+function getWeightGroups() {
+  return weightGroups.filter(function(g) { return g.weight !== '' && g.weight > 0; });
+}
+
 function initRules() {
   var loaded = false;
   try {
@@ -753,10 +822,8 @@ function calcMileageFinal(distance, rule) {
 }
 
 function calculate() {
-  var weight = parseFloat(document.getElementById('weight').value) || 0;
+  var activeGroups = getWeightGroups();
   var distance = parseFloat(document.getElementById('distance').value) || 0;
-  var tickets = parseInt(document.getElementById('ticketCount').value) || 1;
-  if (tickets < 1) tickets = 1;
   var ft = document.getElementById('fuelType').value;
   var vt = document.getElementById('vehicleType').value;
   var vl = parseFloat(document.getElementById('vehicleLength').value);
@@ -771,40 +838,65 @@ function calculate() {
   var hasM = rule.mileageRule && rule.mileageRule.tiers.length > 0;
   if (!hasW && !hasM) { showAlert('当前适用范围无有效报价'); return; }
 
-  var wr = calcWeightFinal(weight, rule);
   var dr = calcMileageFinal(distance, rule);
 
-  // 票数影响所有按重量计费：先×票数，再应用保底封顶
-  if (tickets > 1 && wr.valid) {
-    var multiplied = Math.round(wr.rawTotal * tickets * 100) / 100;
-    var floor = wr.floorPrice || 0;
-    var ceil = wr.ceilPrice || 0;
-    var finalAfterTickets = multiplied;
-    wr.hasFloor = false;
-    wr.hasCeil = false;
-    if (floor > 0 && multiplied < floor) {
-      finalAfterTickets = floor;
-      wr.hasFloor = true;
-    } else if (ceil > 0 && multiplied > ceil) {
-      finalAfterTickets = ceil;
-      wr.hasCeil = true;
+  // 多组重量计算：每组分别算 → 求和 → 统一保底封顶
+  var floor = (rule.weightRule && rule.weightRule.floorPrice) || 0;
+  var ceil = (rule.weightRule && rule.weightRule.ceilPrice) || 0;
+  var isMatch = rule.weightRule && rule.weightRule.calcMode === 'match';
+  var hasAnyWeight = activeGroups.length > 0 && hasW;
+
+  var groupResults = [];
+  var totalRawWeight = 0;
+  if (hasAnyWeight) {
+    for (var gi = 0; gi < activeGroups.length; gi++) {
+      var g = activeGroups[gi];
+      var gCalc = calcWeightFinal(g.weight, rule);
+      var tickets = g.tickets || 1;
+      var groupResult = Math.round(gCalc.rawTotal * tickets * 100) / 100;
+      totalRawWeight += groupResult;
+      groupResults.push({
+        weight: g.weight, tickets: tickets,
+        rawTotal: gCalc.rawTotal, groupResult: groupResult,
+        detail: gCalc.detail, isMatch: gCalc.isMatch
+      });
     }
-    wr.finalTotal = finalAfterTickets;
-    wr.tickets = tickets;
+    totalRawWeight = Math.round(totalRawWeight * 100) / 100;
   }
+
+  // 统一保底封顶
+  var finalWeight = totalRawWeight;
+  var hasFloor = false, hasCeil = false;
+  if (floor > 0 && totalRawWeight < floor) {
+    finalWeight = floor;
+    hasFloor = true;
+  } else if (ceil > 0 && totalRawWeight > ceil) {
+    finalWeight = ceil;
+    hasCeil = true;
+  }
+
+  // 构造 wr 对象（兼容下游引用）
+  var wr = {
+    valid: hasAnyWeight,
+    isMatch: isMatch,
+    floorPrice: floor,
+    ceilPrice: ceil,
+    rawTotal: totalRawWeight,
+    finalTotal: finalWeight,
+    hasFloor: hasFloor,
+    hasCeil: hasCeil,
+    groups: groupResults,
+    detail: []
+  };
 
   // 重量卡片label
   var weightLabel = document.getElementById('weightLabel');
   var distLabel = document.getElementById('distLabel');
-  if (wr.isMatch) {
-    var matchTag = '📦 重量计费（匹配模式）<span class="match-tag">🎯</span>';
-    if (tickets > 1) matchTag += ' <span class="adjust-tag" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE">×'+tickets+'票</span>';
-    if (wr.floorPrice > 0) matchTag += ' <span class="adjust-tag floor'+(wr.hasFloor?'':'')+'">保底¥'+wr.floorPrice.toFixed(2)+'</span>';
-    if (wr.ceilPrice > 0) matchTag += ' <span class="adjust-tag ceil'+(wr.hasCeil?'':'')+'">封顶¥'+wr.ceilPrice.toFixed(2)+'</span>';
-    weightLabel.innerHTML = matchTag;
-  } else {
-    weightLabel.innerHTML = '📦 重量计费（含保底封顶）<span class="tiered-badge">累加</span>';
-  }
+  var modeTag = isMatch ? '（匹配模式）<span class="match-tag">🎯</span>' : '（含保底封顶）<span class="tiered-badge">累加</span>';
+  var groupCountTag = activeGroups.length > 1 ? ' <span class="adjust-tag" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE">'+activeGroups.length+'组货物</span>' : '';
+  var floorTag = floor > 0 ? ' <span class="adjust-tag floor'+(hasFloor?'':'')+'">保底¥'+floor.toFixed(2)+'</span>' : '';
+  var ceilTag = ceil > 0 ? ' <span class="adjust-tag ceil'+(hasCeil?'':'')+'">封顶¥'+ceil.toFixed(2)+'</span>' : '';
+  weightLabel.innerHTML = '📦 重量计费' + modeTag + groupCountTag + floorTag + ceilTag;
   if (dr.isMatch) {
     distLabel.innerHTML = '🛣️ 里程计费（匹配模式）<span class="match-tag">🎯</span>';
   } else {
@@ -814,13 +906,11 @@ function calculate() {
   // 重量卡片
   var wc = document.getElementById('weightCard');
   var wpw = document.getElementById('weightPriceWrap');
-  if (wr.valid && weight > 0) {
+  if (hasAnyWeight) {
     wc.classList.remove('disabled');
-    wpw.innerHTML = '<div class="price"><span class="yen">¥</span><span>'+wr.finalTotal.toFixed(2)+'</span></div>';
-    var wsub = weight+'kg → '+ft+' '+vt+' '+vl+'m';
-    if (tickets > 1) wsub += ' <span style="font-size:11px;color:#4F46E5;font-weight:600">×'+tickets+'票</span>';
-    if (wr.floorPrice > 0) wsub += ' <span class="adjust-tag floor">保底¥'+wr.floorPrice.toFixed(2)+'</span>';
-    if (wr.ceilPrice > 0) wsub += ' <span class="adjust-tag ceil">封顶¥'+wr.ceilPrice.toFixed(2)+'</span>';
+    wpw.innerHTML = '<div class="price"><span class="yen">¥</span><span>'+finalWeight.toFixed(2)+'</span></div>';
+    var totalW = activeGroups.reduce(function(s,g){return s + g.weight;}, 0);
+    var wsub = totalW.toFixed(1)+'kg（'+activeGroups.length+'组） → '+ft+' '+vt+' '+vl+'m';
     document.getElementById('weightSub').innerHTML = wsub;
   } else {
     wc.classList.add('disabled');
@@ -843,29 +933,29 @@ function calculate() {
 
   // 最终
   var fp = 0, fs = '';
-  var wv = wr.valid ? wr.finalTotal : 0;
+  var wv = hasAnyWeight ? finalWeight : 0;
   var dv = dr.valid ? dr.total : 0;
-  if (wr.valid && dr.valid && weight > 0 && distance > 0) {
+  if (hasAnyWeight && dr.valid && distance > 0) {
     fp = Math.max(wv, dv);
     fs = wv >= dv ? '重量计费较高，按重量结算' : '里程计费较高，按里程结算';
-  } else if (wr.valid && weight > 0) { fp = wv; fs = '仅重量报价可用，按重量结算'; }
+  } else if (hasAnyWeight) { fp = wv; fs = '仅重量报价可用，按重量结算'; }
   else if (dr.valid && distance > 0) { fp = dv; fs = '仅里程报价可用，按里程结算'; }
   else { fp = 0; fs = '请输入有效数值'; }
   document.getElementById('finalPrice').textContent = fp.toFixed(2);
   document.getElementById('finalSub').textContent = fs;
 
   // 面板标题
-  document.getElementById('weightBreakdownTitle').innerHTML = wr.isMatch
+  document.getElementById('weightBreakdownTitle').innerHTML = isMatch
     ? '📦 按重量计费明细（匹配模式）<span class="match-badge">🎯</span>'
     : '📦 按重量计费明细（累加模式）<span class="tiered-badge">累加</span>';
   document.getElementById('distBreakdownTitle').innerHTML = dr.isMatch
     ? '🛣️ 按里程计费明细（匹配模式）<span class="match-badge">🎯</span>'
     : '🛣️ 按里程计费明细（累加模式）<span class="tiered-badge">累加</span>';
 
-  renderWeightBreakdown(wr, weight > 0);
+  renderWeightBreakdown(wr, hasAnyWeight);
   renderMileageBreakdown(dr, distance > 0);
   document.getElementById('resultSection').classList.add('show');
-  updateCompare(weight, distance);
+  updateCompare(activeGroups, distance);
 }
 
 function showAlert(msg) { alert(msg); }
@@ -874,27 +964,45 @@ function renderWeightBreakdown(result, hasInput) {
   var el = document.getElementById('weightBreakdown');
   if (!result.valid || !hasInput) { el.innerHTML = '<div class="no-quote-tip">当前范围无重量报价或未输入重量</div>'; return; }
   var html = '';
-  result.detail.forEach(function(d) {
-    var cls = d.type==='floor' ? 'adjust-floor' : (d.type==='ceil' ? 'adjust-ceil' : (result.isMatch ? 'match-tier' : ''));
-    var valCls = d.type==='floor' ? ' style="color:var(--warning);font-weight:700"' : (d.type==='ceil' ? ' style="color:var(--success);font-weight:700"' : (result.isMatch ? ' style="color:#7C3AED;font-weight:700"' : ''));
-    html += '<div class="breakdown-row '+cls+'"><span class="desc">'+d.desc+'</span><span class="val"'+valCls+'>'+(d.amount>=0?'¥':'-¥')+Math.abs(d.amount).toFixed(2)+'</span></div>';
-  });
-  if (result.tickets && result.tickets > 1) {
-    var multiplied = Math.round(result.rawTotal * result.tickets * 100) / 100;
-    html += '<div class="breakdown-row match-tier"><span class="desc">单趟小计</span><span class="val" style="color:#7C3AED;font-weight:600">¥'+result.rawTotal.toFixed(2)+'</span></div>';
-    html += '<div class="breakdown-row match-tier"><span class="desc">× '+result.tickets+' 票</span><span class="val" style="color:#4F46E5;font-weight:700">¥'+multiplied.toFixed(2)+'</span></div>';
+  var groups = result.groups || [];
+  var multiGroup = groups.length > 1;
+
+  for (var gi = 0; gi < groups.length; gi++) {
+    var g = groups[gi];
+    if (multiGroup) {
+      html += '<div style="margin-top:'+(gi>0?'16':'0')+'px;padding:10px 12px;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200)">';
+      html += '<div style="font-size:12px;font-weight:700;color:var(--gray-600);margin-bottom:8px">📦 第'+(gi+1)+'组：'+g.weight+'kg'+(g.tickets>1?' × '+g.tickets+'票':'')+'</div>';
+    }
+    g.detail.forEach(function(d) {
+      var cls = d.type==='floor' ? 'adjust-floor' : (d.type==='ceil' ? 'adjust-ceil' : (g.isMatch ? 'match-tier' : ''));
+      var valCls = d.type==='floor' ? ' style="color:var(--warning);font-weight:700"' : (d.type==='ceil' ? ' style="color:var(--success);font-weight:700"' : (g.isMatch ? ' style="color:#7C3AED;font-weight:700"' : ''));
+      html += '<div class="breakdown-row '+cls+'"><span class="desc">'+d.desc+'</span><span class="val"'+valCls+'>'+(d.amount>=0?'¥':'-¥')+Math.abs(d.amount).toFixed(2)+'</span></div>';
+    });
+    if (g.tickets > 1) {
+      html += '<div class="breakdown-row match-tier"><span class="desc">单趟小计</span><span class="val" style="color:#7C3AED;font-weight:600">¥'+g.rawTotal.toFixed(2)+'</span></div>';
+      html += '<div class="breakdown-row match-tier"><span class="desc">× '+g.tickets+' 票</span><span class="val" style="color:#4F46E5;font-weight:700">¥'+g.groupResult.toFixed(2)+'</span></div>';
+    }
+    if (multiGroup) {
+      html += '<div class="breakdown-row" style="border-top:1px solid var(--gray-200);padding-top:4px;margin-top:4px"><span class="desc" style="font-weight:600">本组合计</span><span class="val" style="font-weight:700;color:#7C3AED">¥'+g.groupResult.toFixed(2)+'</span></div>';
+      html += '</div>';
+    }
   }
+
+  if (multiGroup) {
+    html += '<div class="breakdown-row" style="border-top:2px solid var(--gray-300);padding-top:8px;margin-top:12px"><span class="desc" style="font-weight:700;font-size:14px">各组求和</span><span class="val" style="font-weight:700;font-size:14px;color:#7C3AED">¥'+result.rawTotal.toFixed(2)+'</span></div>';
+  }
+
   if (result.isMatch) {
-    html += '<div class="breakdown-row total"><span class="desc">合计'+(result.tickets>1?'（含票数）':'（全额费率）')+'</span><span class="val" style="color:#7C3AED;font-weight:800">¥'+result.finalTotal.toFixed(2)+'</span></div>';
+    html += '<div class="breakdown-row total"><span class="desc">合计'+(multiGroup?'（各组求和）':'（全额费率）')+'</span><span class="val" style="color:#7C3AED;font-weight:800">¥'+result.rawTotal.toFixed(2)+'</span></div>';
   } else {
-    html += '<div class="breakdown-row total"><span class="desc">合计'+(result.tickets>1?'（含票数）':'')+'</span><span class="val">¥'+result.finalTotal.toFixed(2)+'</span></div>';
+    html += '<div class="breakdown-row total"><span class="desc">合计'+(multiGroup?'（各组求和）':'')+'</span><span class="val">¥'+result.rawTotal.toFixed(2)+'</span></div>';
   }
   // 展示保底价/封顶价参考信息（无论是否触发）
   var fp = result.floorPrice || 0;
   var cp = result.ceilPrice || 0;
   if (fp > 0 || cp > 0) {
     html += '<div style="margin-top:12px;padding:10px 12px;background:var(--gray-50);border-radius:8px;border:1px dashed var(--gray-200)">';
-    html += '<div style="font-size:11px;color:var(--gray-500);margin-bottom:6px;font-weight:600">💡 保底封顶参考</div>';
+    html += '<div style="font-size:11px;color:var(--gray-500);margin-bottom:6px;font-weight:600">💡 保底封顶（针对整趟）</div>';
     if (fp > 0) {
       var floorTriggered = result.hasFloor;
       html += '<div class="breakdown-row" style="border-bottom:1px dashed var(--gray-200);padding:4px 0"><span class="desc" style="font-size:12px">保底价'+(floorTriggered?' <span class="adjust-tag floor">已触发</span>':'')+'</span><span class="val" style="color:var(--warning);font-size:12px">¥'+fp.toFixed(2)+'</span></div>';
@@ -903,6 +1011,7 @@ function renderWeightBreakdown(result, hasInput) {
       var ceilTriggered = result.hasCeil;
       html += '<div class="breakdown-row" style="padding:4px 0"><span class="desc" style="font-size:12px">封顶价'+(ceilTriggered?' <span class="adjust-tag ceil">已触发</span>':'')+'</span><span class="val" style="color:var(--success);font-size:12px">¥'+cp.toFixed(2)+'</span></div>';
     }
+    html += '<div class="breakdown-row" style="border-top:1px solid var(--gray-300);padding-top:6px;margin-top:6px"><span class="desc" style="font-weight:700;font-size:13px">最终重量运费</span><span class="val" style="font-weight:800;font-size:14px;color:#7C3AED">¥'+result.finalTotal.toFixed(2)+'</span></div>';
     html += '</div>';
   }
   el.innerHTML = html;
@@ -995,17 +1104,16 @@ function filterScopes() {
 
 // ========== 价格对比（色阶 + 摘要 + 折叠） ==========
 function updateCompare(w, d) {
-  var weight = (typeof w !== 'undefined') ? w : (parseFloat(document.getElementById('weight').value) || 0);
+  var activeGroups = (typeof w !== 'undefined') ? w : getWeightGroups();
   var distance = (typeof d !== 'undefined') ? d : (parseFloat(document.getElementById('distance').value) || 0);
-  var tickets = parseInt(document.getElementById('ticketCount').value) || 1;
-  if (tickets < 1) tickets = 1;
   var ft = document.getElementById('fuelType').value;
   var vt = document.getElementById('vehicleType').value;
   var vl = parseFloat(document.getElementById('vehicleLength').value);
 
-  renderSummaryBoard(ft, vt, vl, weight, distance);
+  var totalW = activeGroups.reduce(function(s,g){return s + g.weight;}, 0);
+  renderSummaryBoard(ft, vt, vl, totalW, distance);
 
-  if (weight <= 0 && distance <= 0) {
+  if (totalW <= 0 && distance <= 0) {
     document.getElementById('compareResult').innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:40px">请输入重量和里程后查看对比</div>';
     return;
   }
@@ -1019,29 +1127,38 @@ function updateCompare(w, d) {
   }
 
   var results = filteredRules.map(function(rule) {
-    var wr = calcWeightFinal(weight, rule);
     var dr = calcMileageFinal(distance, rule);
-    // 票数影响所有按重量计费：先×票数，再应用保底封顶
-    if (wr.valid && tickets > 1) {
-      var mult = Math.round(wr.rawTotal * tickets * 100) / 100;
-      var fl = rule.weightRule.floorPrice || 0;
-      var cl = rule.weightRule.ceilPrice || 0;
-      var ft = mult;
-      if (fl > 0 && mult < fl) ft = fl;
-      else if (cl > 0 && mult > cl) ft = cl;
-      wr.finalTotal = ft;
+
+    // 多组重量计算：每组分别算 → 求和 → 统一保底封顶
+    var hasW = rule.weightRule && rule.weightRule.tiers.length > 0;
+    var hasAnyWeight = activeGroups.length > 0 && hasW;
+    var totalRawWeight = 0;
+    if (hasAnyWeight) {
+      for (var gi = 0; gi < activeGroups.length; gi++) {
+        var g = activeGroups[gi];
+        var gCalc = calcWeightFinal(g.weight, rule);
+        var tix = g.tickets || 1;
+        totalRawWeight += Math.round(gCalc.rawTotal * tix * 100) / 100;
+      }
+      totalRawWeight = Math.round(totalRawWeight * 100) / 100;
     }
-    var wv = wr.valid ? wr.finalTotal : 0;
+    var floor = (rule.weightRule && rule.weightRule.floorPrice) || 0;
+    var ceil = (rule.weightRule && rule.weightRule.ceilPrice) || 0;
+    var finalWeight = totalRawWeight;
+    if (floor > 0 && totalRawWeight < floor) finalWeight = floor;
+    else if (ceil > 0 && totalRawWeight > ceil) finalWeight = ceil;
+
+    var wv = hasAnyWeight ? finalWeight : 0;
     var dv = dr.valid ? dr.total : 0;
     var fin = 0, basis = '-';
-    if (wr.valid && dr.valid && weight > 0 && distance > 0) { fin = Math.max(wv, dv); basis = wv >= dv ? '重量' : '里程'; }
-    else if (wr.valid && weight > 0) { fin = wv; basis = tickets > 1 ? '仅重量(×'+tickets+'票)' : '仅重量'; }
+    if (hasAnyWeight && dr.valid && distance > 0) { fin = Math.max(wv, dv); basis = wv >= dv ? '重量' : '里程'; }
+    else if (hasAnyWeight) { fin = wv; basis = activeGroups.length > 1 ? '仅重量('+activeGroups.length+'组)' : '仅重量'; }
     else if (dr.valid && distance > 0) { fin = dv; basis = '仅里程'; }
     return {
       scope:rule['适用范围'],region:rule['区域']||'',
-      weightPrice:wr.valid?wr.finalTotal:null,distPrice:dr.valid?dr.total:null,
-      final:fin,basis:basis,hasWeight:wr.valid,hasMileage:dr.valid,
-      isMatch:(wr.isMatch||dr.isMatch)
+      weightPrice:hasAnyWeight?finalWeight:null,distPrice:dr.valid?dr.total:null,
+      final:fin,basis:basis,hasWeight:hasAnyWeight,hasMileage:dr.valid,
+      isMatch:((rule.weightRule&&rule.weightRule.calcMode==='match')||(dr.isMatch))
     };
   });
 
@@ -1864,9 +1981,8 @@ function exportConfig() {
         vehicleType: document.getElementById('vehicleType').value,
         vehicleLength: document.getElementById('vehicleLength').value,
         scope: document.getElementById('scope').value,
-        weight: document.getElementById('weight').value,
         distance: document.getElementById('distance').value,
-        ticketCount: document.getElementById('ticketCount').value
+        weightGroups: weightGroups.map(function(g){return {weight: g.weight || '', tickets: g.tickets || 1};})
       },
       selectedScopes: Array.from(selectedScopes),
       groupCollapsed: groupCollapsed
@@ -1906,9 +2022,13 @@ function importConfig(event) {
         if (f.vehicleType) document.getElementById('vehicleType').value = f.vehicleType;
         if (f.vehicleLength) document.getElementById('vehicleLength').value = f.vehicleLength;
         if (f.scope) document.getElementById('scope').value = f.scope;
-        if (f.weight) document.getElementById('weight').value = f.weight;
         if (f.distance) document.getElementById('distance').value = f.distance;
-        if (f.ticketCount) document.getElementById('ticketCount').value = f.ticketCount;
+        if (f.weightGroups && Array.isArray(f.weightGroups)) {
+          weightGroups = f.weightGroups.map(function(g){return {weight: g.weight || '', tickets: Math.max(1, parseInt(g.tickets) || 1)};});
+          if (weightGroups.length === 0) weightGroups = [{weight: '', tickets: 1}];
+          renderWeightGroups();
+          bindWeightGroupEvents();
+        }
       }
       if (config.selectedScopes) selectedScopes = new Set(config.selectedScopes);
       if (config.groupCollapsed) groupCollapsed = config.groupCollapsed;
@@ -1935,8 +2055,10 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('vehicleType').addEventListener('change', function(){updateFilterOptions();calculate();matrixScopesInited=false;matrixRemovedScopes.clear();});
   document.getElementById('vehicleLength').addEventListener('change', function(){updateFilterOptions();calculate();matrixScopesInited=false;matrixRemovedScopes.clear();});
   document.getElementById('scope').addEventListener('change', function(){calculate();});
-  document.getElementById('weight').addEventListener('input', function(){calculate();});
   document.getElementById('distance').addEventListener('input', function(){calculate();});
+  document.getElementById('btnAddGroup').addEventListener('click', function(){addWeightGroup();});
+  renderWeightGroups();
+  bindWeightGroupEvents();
 
   document.getElementById('scopeSearch').addEventListener('input', filterScopes);
 
