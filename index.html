@@ -60,6 +60,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
 .btn-calc { width:100%; margin-top:20px; padding:14px; background:linear-gradient(135deg,var(--primary) 0%,var(--primary-dark) 100%); color:#fff; border:none; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; transition:all .2s; box-shadow:0 4px 12px rgba(37,99,235,.3); }
 .btn-calc:hover { transform:translateY(-1px); box-shadow:0 6px 16px rgba(37,99,235,.4); }
 .btn-calc:active { transform:translateY(0); }
+.btn-row { display:flex; gap:12px; margin-top:20px; }
+.btn-row .btn-calc { margin-top:0; flex:1; }
+.btn-reset { flex:0 0 auto; padding:14px 24px; background:#fff; border:2px solid var(--gray-200); border-radius:10px; font-size:15px; font-weight:600; color:var(--gray-600); cursor:pointer; transition:all .2s; white-space:nowrap; }
+.btn-reset:hover { border-color:var(--danger); color:var(--danger); background:var(--danger-bg); }
 .weight-groups-section { margin-top:16px; }
 .weight-groups-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
 .weight-groups-header .wg-label { font-size:13px; font-weight:600; color:var(--gray-600); }
@@ -372,7 +376,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
         </div>
         <div id="weightGroupsContainer"></div>
       </div>
-      <button class="btn-calc" id="btnCalc">🔍 计算运费</button>
+      <div class="btn-row">
+        <button class="btn-calc" id="btnCalc">🔍 计算运费</button>
+        <button class="btn-reset" id="btnResetQuery">↺ 重置条件</button>
+      </div>
     </div>
   </div>
 
@@ -976,7 +983,24 @@ function calculate() {
     var r = ruleList[i];
     if (r['燃油类型']===ft && r['车型']===vt && r['车长']===vl && r['适用范围']===sc) { rule = r; break; }
   }
-  if (!rule) { showAlert('未找到匹配的计价规则，请检查筛选条件'); return; }
+  if (!rule) {
+    // 诊断：当前区域下有哪些可用的适用范围
+    var region = document.getElementById('regionSelect').value;
+    var regionRules = region ? ruleList.filter(function(r){return (r['区域']||'其他')===region;}) : ruleList;
+    var availScopes = unique(regionRules.map(function(r){return r['适用范围'];})).slice(0, 6);
+    var availFuel = unique(regionRules.map(function(r){return r['燃油类型'];})).slice(0, 4);
+    var availVtype = unique(regionRules.map(function(r){return r['车型'];})).slice(0, 4);
+    var msg = '当前条件（燃油类型「'+ft+'」、车型「'+vt+'」、车长「'+vl+'m」、适用范围「'+sc+'」）无匹配规则。';
+    if (availScopes.length > 0 && availScopes.indexOf(sc) === -1) {
+      msg += '\n当前区域可用适用范围：' + availScopes.join('、');
+    } else if (availVtype.length > 0 && availVtype.indexOf(vt) === -1) {
+      msg += '\n当前区域可用车型：' + availVtype.join('、');
+    } else if (availFuel.length > 0 && availFuel.indexOf(ft) === -1) {
+      msg += '\n当前区域可用燃油类型：' + availFuel.join('、');
+    }
+    showAlert(msg);
+    return;
+  }
   var hasW = rule.weightRule && rule.weightRule.tiers.length > 0;
   var hasM = rule.mileageRule && rule.mileageRule.tiers.length > 0;
   if (!hasW && !hasM) { showAlert('当前适用范围无有效报价'); return; }
@@ -1063,6 +1087,37 @@ function calculate() {
 }
 
 function showAlert(msg) { alert(msg); }
+
+// ========== 重置查询条件（保留区域） ==========
+function resetQueryFilters() {
+  // 重置查询下拉框：燃油类型取第一个，车型优先选厢式车，车长优先选4.2m
+  var ft = document.getElementById('fuelType');
+  var vt = document.getElementById('vehicleType');
+  var vl = document.getElementById('vehicleLength');
+  if (ft.options.length) ft.value = ft.options[0].value;
+  if (vt.options.length) {
+    vt.value = vt.querySelector('option[value="厢式车"]') ? '厢式车' : vt.options[0].value;
+  }
+  if (vl.options.length) {
+    vl.value = vl.querySelector('option[value="4.2m"]') ? '4.2m' : vl.options[0].value;
+  }
+
+  // 清空里程
+  document.getElementById('distance').value = '';
+
+  // 重置重量组
+  weightGroups = [{weight: '', tickets: 1}];
+  renderWeightGroups();
+  bindWeightGroupEvents();
+
+  // 清除当前查询适用范围标记
+  currentQueryScope = '';
+
+  // 级联更新省份和适用范围（基于保留的区域 + 重置后的燃油/车型/车长）
+  updateCascadeFilters();
+
+  // 不自动计算，用户自行点击「计算运费」
+}
 
 function renderWeightBreakdown(result, hasInput) {
   var el = document.getElementById('weightBreakdown');
@@ -2542,6 +2597,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initRules();
 
   document.getElementById('btnCalc').addEventListener('click', calculate);
+  document.getElementById('btnResetQuery').addEventListener('click', resetQueryFilters);
 
   // 级联：区域变化 → 更新省份和适用范围
   document.getElementById('regionSelect').addEventListener('change', function(){
