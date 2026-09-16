@@ -2752,6 +2752,7 @@ function loadFromProject() {
       return res.text();
     })
     .then(function(text) {
+      console.log('fetch 返回的内容（前300字符）:', text.slice(0,300));
       parseAndApply(text);
     })
     .catch(function(err) {
