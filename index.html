@@ -2754,13 +2754,16 @@ function loadFromProject() {
     .then(function(text) {
       parseAndApply(text);
     })
-    .catch(function() {
+    .catch(function(err) {
+      console.warn('loadFromProject fetch 失败:', err);
       // 本地文件（file:// 协议）下 fetch 会被浏览器拦截，改用内嵌数据
       try {
         parseAndApply(EMBEDDED_CSV_DATA);
-        document.getElementById('ruleStatus').textContent += '（内嵌数据）';
+        document.getElementById('ruleStatus').textContent += '（内嵌数据 - fetch被拦截）';
+        console.info('已使用内嵌数据作为兜底');
       } catch(e) {
         showAlert('加载失败，内嵌数据也无效：' + e.message);
+        console.error('内嵌数据也无效:', e);
       }
     })
     .finally(function() {
