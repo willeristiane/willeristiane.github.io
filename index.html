@@ -362,6 +362,12 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
           <select id="scope"></select>
         </div>
         <div class="input-group">
+          <label>报价编码</label>
+          <select id="codeSelect">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="input-group">
           <label>运输里程 <span class="unit">(km)</span></label>
           <div class="input-row">
             <input type="number" id="distance" placeholder="输入里程" min="0">
@@ -467,6 +473,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hi
         <button class="btn-secondary" id="btnExport">📤 导出当前规则</button>
         <button class="btn-secondary" id="btnExportConfig" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE">💾 导出配置</button>
         <button class="btn-secondary" id="btnImportConfig" style="background:#EEF2FF;color:#4F46E5;border-color:#C7D2FE">📂 导入配置</button>
+        <button class="btn-secondary" id="btnLoadProject" style="background:#ECFDF5;color:#059669;border-color:#6EE7B7">📂 从项目目录读取</button>
         <button class="btn-danger" id="btnReset">↺ 恢复默认</button>
       </div>
       <input type="file" id="importFile" class="file-input" accept=".csv,.txt">
@@ -545,7 +552,7 @@ var defaultRules = [
 
 // mk工厂函数: code, fuel, vtype, vlen, scope, region, province, calcType, calcMode, weightRule, mileageRule
 function mk(code,fuel,vtype,vlen,scope,region,province,calcType,calcMode,wr,mr) {
-  return {'报价编码':code,'燃油类型':fuel,'车型':vtype,'车长':vlen,'适用范围':scope,'区域':region,'省份':province,'计价方式':calcType,
+  return {'报价编码':code,'编码':code,'燃油类型':fuel,'车型':vtype,'车长':vlen,'适用范围':scope,'区域':region,'省份':province,'计价方式':calcType,
     weightRule:JSON.parse(JSON.stringify(wr)),mileageRule:JSON.parse(JSON.stringify(mr))};
 }
 
@@ -609,6 +616,189 @@ function getHierarchy(rules) {
 }
 
 var regionOrder = ['华东区域','华南区域','华北区域','西南区域','西北区域','东北区域','其他'];
+
+// 数据源：与 HTML 同目录下的 data.csv（相对路径，随 HTML 位置走）
+var PROJECT_DATA_URL = 'data.csv';
+// 内嵌 CSV 数据（作为 file:// 协议下 fetch 的兜底）
+var EMBEDDED_CSV_DATA = `﻿区域,省份,编码,燃油类型,车型,车长,适用范围,计价方式,计费模式,阶梯起始,阶梯结束,费率,起步价,保底价,封顶价
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按重量,累加,0,10,0,140,120,500
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按重量,累加,10,30,4.3,0,0,0
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按重量,累加,30,50,4.1,0,0,0
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按重量,累加,50,100,4.0,0,0,0
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按重量,累加,100,,3.5,0,0,0
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按重量,累加,0,10,0,135,110,480
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按重量,累加,10,30,4.1,0,0,0
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按重量,累加,30,50,4.0,0,0,0
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按重量,累加,50,100,3.8,0,0,0
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按重量,累加,100,,3.2,0,0,0
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按重量,累加,0,10,0,130,100,460
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按重量,累加,10,30,4.0,0,0,0
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按重量,累加,30,50,3.8,0,0,0
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按重量,累加,50,100,3.6,0,0,0
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按重量,累加,100,,3.2,0,0,0
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按重量,累加,0,10,0,155,130,550
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按重量,累加,10,30,4.8,0,0,0
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按重量,累加,30,50,4.5,0,0,0
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按重量,累加,50,100,4.2,0,0,0
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按重量,累加,100,,3.8,0,0,0
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按重量,累加,0,10,0,125,100,440
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按重量,累加,10,30,3.8,0,0,0
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按重量,累加,30,50,3.6,0,0,0
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按重量,累加,50,100,3.4,0,0,0
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按重量,累加,100,,3.0,0,0,0
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按重量,累加,0,10,0,150,125,520
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按重量,累加,10,30,4.5,0,0,0
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按重量,累加,30,50,4.3,0,0,0
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按重量,累加,50,100,4.0,0,0,0
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按重量,累加,100,,3.6,0,0,0
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按重量,累加,0,10,0,142,118,500
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按重量,累加,10,30,4.2,0,0,0
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按重量,累加,30,50,4.0,0,0,0
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按重量,累加,50,100,3.8,0,0,0
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按重量,累加,100,,3.3,0,0,0
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按重量,累加,0,10,0,160,135,560
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按重量,累加,10,30,5.0,0,0,0
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按重量,累加,30,50,4.7,0,0,0
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按重量,累加,50,100,4.4,0,0,0
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按重量,累加,100,,3.9,0,0,0
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按重量,累加,0,10,0,148,120,530
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按重量,累加,10,30,4.6,0,0,0
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按重量,累加,30,50,4.3,0,0,0
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按重量,累加,50,100,4.0,0,0,0
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按重量,累加,100,,3.5,0,0,0
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按重量,累加,0,10,0,138,110,490
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按重量,累加,10,30,4.2,0,0,0
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按重量,累加,30,50,4.0,0,0,0
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按重量,累加,50,100,3.7,0,0,0
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按重量,累加,100,,3.3,0,0,0
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按重量,累加,0,10,0,140,115,510
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按重量,累加,10,30,4.3,0,0,0
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按重量,累加,30,50,4.1,0,0,0
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按重量,累加,50,100,3.8,0,0,0
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按重量,累加,100,,3.3,0,0,0
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按重量,累加,0,10,0,170,145,600
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按重量,累加,10,30,5.2,0,0,0
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按重量,累加,30,50,4.9,0,0,0
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按重量,累加,50,100,4.5,0,0,0
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按重量,累加,100,,4.0,0,0,0
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按重量,累加,0,10,0,165,140,580
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按重量,累加,10,30,5.0,0,0,0
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按重量,累加,30,50,4.7,0,0,0
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按重量,累加,50,100,4.3,0,0,0
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按重量,累加,100,,3.8,0,0,0
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按重量,累加,0,10,0,160,135,570
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按重量,累加,10,30,4.8,0,0,0
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按重量,累加,30,50,4.5,0,0,0
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按重量,累加,50,100,4.2,0,0,0
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按重量,累加,100,,3.7,0,0,0
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按重量,累加,0,10,0,175,150,620
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按重量,累加,10,30,5.5,0,0,0
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按重量,累加,30,50,5.1,0,0,0
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按重量,累加,50,100,4.7,0,0,0
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按重量,累加,100,,4.2,0,0,0
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按重量,累加,0,10,0,168,140,590
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按重量,累加,10,30,5.3,0,0,0
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按重量,累加,30,50,5.0,0,0,0
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按重量,累加,50,100,4.6,0,0,0
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按重量,累加,100,,4.1,0,0,0
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按里程,累加,0,10,0,140,,
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按里程,累加,10,30,4.3,0,0,0
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按里程,累加,30,50,4.1,0,0,0
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按里程,累加,50,100,4.0,0,0,0
+华东区域,湖南省,HT-HD-001,燃油,厢式车,4.2,洞庭取派部,按里程,累加,100,,3.5,0,0,0
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按里程,累加,0,10,0,135,,
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按里程,累加,10,30,4.1,0,0,0
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按里程,累加,30,50,4.0,0,0,0
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按里程,累加,50,100,3.8,0,0,0
+华东区域,湖南省,HT-HD-002,电动,厢式车,4.2,洞庭取派部,按里程,累加,100,,3.2,0,0,0
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按里程,累加,0,10,0,130,,
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按里程,累加,10,30,4.0,0,0,0
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按里程,累加,30,50,3.8,0,0,0
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按里程,累加,50,100,3.6,0,0,0
+华东区域,湖南省,HT-HD-003,燃油,厢式车,4.2,长沙枢纽,按里程,累加,100,,3.2,0,0,0
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按里程,累加,0,10,0,155,,
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按里程,累加,10,30,4.8,0,0,0
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按里程,累加,30,50,4.5,0,0,0
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按里程,累加,50,100,4.2,0,0,0
+华东区域,湖北省,HT-HD-004,燃油,厢式车,4.2,武汉分拨中心,按里程,累加,100,,3.8,0,0,0
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按里程,累加,0,10,0,125,,
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按里程,累加,10,30,3.8,0,0,0
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按里程,累加,30,50,3.6,0,0,0
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按里程,累加,50,100,3.4,0,0,0
+华东区域,安徽省,HT-HD-005,燃油,厢式车,4.2,合肥仓配站,按里程,累加,100,,3.0,0,0,0
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按里程,累加,0,10,0,150,,
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按里程,累加,10,30,4.5,0,0,0
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按里程,累加,30,50,4.3,0,0,0
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按里程,累加,50,100,4.0,0,0,0
+华南区域,广东省,HT-HN-001,燃油,厢式车,4.2,广州集散中心,按里程,累加,100,,3.6,0,0,0
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按里程,累加,0,10,0,142,,
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按里程,累加,10,30,4.2,0,0,0
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按里程,累加,30,50,4.0,0,0,0
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按里程,累加,50,100,3.8,0,0,0
+华南区域,广东省,HT-HN-002,电动,厢式车,4.2,广州集散中心,按里程,累加,100,,3.3,0,0,0
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按里程,累加,0,10,0,160,,
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按里程,累加,10,30,5.0,0,0,0
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按里程,累加,30,50,4.7,0,0,0
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按里程,累加,50,100,4.4,0,0,0
+华南区域,广东省,HT-HN-003,燃油,厢式车,4.2,深圳转运站,按里程,累加,100,,3.9,0,0,0
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按里程,累加,0,10,0,148,,
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按里程,累加,10,30,4.6,0,0,0
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按里程,累加,30,50,4.3,0,0,0
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按里程,累加,50,100,4.0,0,0,0
+华北区域,北京市,HT-HB-001,燃油,厢式车,4.2,北京调度中心,按里程,累加,100,,3.5,0,0,0
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按里程,累加,0,10,0,138,,
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按里程,累加,10,30,4.2,0,0,0
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按里程,累加,30,50,4.0,0,0,0
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按里程,累加,50,100,3.7,0,0,0
+华北区域,天津市,HT-HB-002,燃油,厢式车,4.2,天津港口站,按里程,累加,100,,3.3,0,0,0
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按里程,累加,0,10,0,140,,
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按里程,累加,10,30,4.3,0,0,0
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按里程,累加,30,50,4.1,0,0,0
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按里程,累加,50,100,3.8,0,0,0
+华北区域,北京市,HT-HB-003,电动,厢式车,4.2,北京调度中心,按里程,累加,100,,3.3,0,0,0
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按里程,累加,0,10,0,170,,
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按里程,累加,10,30,5.2,0,0,0
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按里程,累加,30,50,4.9,0,0,0
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按里程,累加,50,100,4.5,0,0,0
+西南区域,四川省,HT-XN-001,燃油,厢式车,4.2,成都集散中心,按里程,累加,100,,4.0,0,0,0
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按里程,累加,0,10,0,165,,
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按里程,累加,10,30,5.0,0,0,0
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按里程,累加,30,50,4.7,0,0,0
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按里程,累加,50,100,4.3,0,0,0
+西南区域,重庆市,HT-XN-002,燃油,厢式车,4.2,重庆转运站,按里程,累加,100,,3.8,0,0,0
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按里程,累加,0,10,0,160,,
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按里程,累加,10,30,4.8,0,0,0
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按里程,累加,30,50,4.5,0,0,0
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按里程,累加,50,100,4.2,0,0,0
+西南区域,四川省,HT-XN-003,电动,厢式车,4.2,成都集散中心,按里程,累加,100,,3.7,0,0,0
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按里程,累加,0,10,0,175,,
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按里程,累加,10,30,5.5,0,0,0
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按里程,累加,30,50,5.1,0,0,0
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按里程,累加,50,100,4.7,0,0,0
+西北区域,陕西省,HT-XB-001,燃油,厢式车,4.2,西安中转站,按里程,累加,100,,4.2,0,0,0
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按里程,累加,0,10,0,168,,
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按里程,累加,10,30,5.3,0,0,0
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按里程,累加,30,50,5.0,0,0,0
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按里程,累加,50,100,4.6,0,0,0
+东北区域,辽宁省,HT-DB-001,燃油,厢式车,4.2,沈阳调度站,按里程,累加,100,,4.1,0,0,0
+华东区域,湖南省,HT-HD-M01,燃油,平板车,6.8,洞庭取派部,按重量,匹配,0,500,6.5,,300,2000
+华东区域,湖南省,HT-HD-M01,燃油,平板车,6.8,洞庭取派部,按重量,匹配,500,2000,5.8,,,
+华东区域,湖南省,HT-HD-M01,燃油,平板车,6.8,洞庭取派部,按重量,匹配,2000,5000,5.0,,,
+华东区域,湖南省,HT-HD-M01,燃油,平板车,6.8,洞庭取派部,按重量,匹配,5000,,4.2,,,
+华东区域,湖南省,HT-HD-M01,燃油,平板车,6.8,洞庭取派部,按里程,匹配,0,50,12,,,
+华东区域,湖南省,HT-HD-M01,燃油,平板车,6.8,洞庭取派部,按里程,匹配,50,200,10,,,
+华东区域,湖南省,HT-HD-M01,燃油,平板车,6.8,洞庭取派部,按里程,匹配,200,500,8,,,
+华东区域,湖南省,HT-HD-M01,燃油,平板车,6.8,洞庭取派部,按里程,匹配,500,,6,,,
+华南区域,广东省,HT-HN-M01,燃油,平板车,6.8,广州集散中心,按重量,匹配,0,500,7.0,,350,2200
+华南区域,广东省,HT-HN-M01,燃油,平板车,6.8,广州集散中心,按重量,匹配,500,2000,6.2,,,
+华南区域,广东省,HT-HN-M01,燃油,平板车,6.8,广州集散中心,按重量,匹配,2000,5000,5.5,,,
+华南区域,广东省,HT-HN-M01,燃油,平板车,6.8,广州集散中心,按重量,匹配,5000,,4.5,,,
+华南区域,广东省,HT-HN-M01,燃油,平板车,6.8,广州集散中心,按里程,匹配,0,50,13,,,
+华南区域,广东省,HT-HN-M01,燃油,平板车,6.8,广州集散中心,按里程,匹配,50,200,11,,,
+华南区域,广东省,HT-HN-M01,燃油,平板车,6.8,广州集散中心,按里程,匹配,200,500,9,,,
+华南区域,广东省,HT-HN-M01,燃油,平板车,6.8,广州集散中心,按里程,匹配,500,,7,,,
+`;
+
 
 function sortRegions(keys) {
   return regionOrder.filter(function(r){return keys.indexOf(r)>=0;}).concat(keys.filter(function(k){return regionOrder.indexOf(k)===-1;}));
@@ -864,6 +1054,28 @@ function updateScopeOptions(baseFiltered) {
   }
 
   initScopeSelector();
+  updateCodeOptions(filtered);
+}
+
+// ========== 根据当前筛选条件更新编码下拉 ==========
+function updateCodeOptions(baseFiltered) {
+  var filtered = baseFiltered || ruleList;
+  var scope = document.getElementById('scope').value;
+  if (scope) {
+    filtered = filtered.filter(function(r){return r['适用范围']===scope;});
+  }
+  // 同时匹配当前燃油/车型/车长
+  var ft = document.getElementById('fuelType').value;
+  var vt = document.getElementById('vehicleType').value;
+  var vl = parseFloat(document.getElementById('vehicleLength').value);
+  filtered = filtered.filter(function(r){return r['燃油类型']===ft && r['车型']===vt && r['车长']===vl;});
+
+  var codes = unique(filtered.map(function(r){return r['编码']||'';})).filter(function(c){return c;});
+  var sel = document.getElementById('codeSelect');
+  sel.innerHTML = '<option value="">全部</option>';
+  codes.forEach(function(c) {
+    sel.innerHTML += '<option value="'+c+'">'+c+'</option>';
+  });
 }
 
 function fillSelect(id, options) {
@@ -978,10 +1190,18 @@ function calculate() {
   var vt = document.getElementById('vehicleType').value;
   var vl = parseFloat(document.getElementById('vehicleLength').value);
   var sc = currentQueryScope || document.getElementById('scope').value;
+  var codeVal = document.getElementById('codeSelect').value;
   var rule = null;
   for (var i = 0; i < ruleList.length; i++) {
     var r = ruleList[i];
-    if (r['燃油类型']===ft && r['车型']===vt && r['车长']===vl && r['适用范围']===sc) { rule = r; break; }
+    if (r['燃油类型']===ft && r['车型']===vt && r['车长']===vl && r['适用范围']===sc) {
+      // 如果选了编码，精确匹配编码；没选则匹配第一条
+      if (codeVal) {
+        if ((r['编码']||'') === codeVal) { rule = r; break; }
+      } else {
+        rule = r; break;
+      }
+    }
   }
   if (!rule) {
     // 诊断：当前区域下有哪些可用的适用范围
@@ -990,7 +1210,8 @@ function calculate() {
     var availScopes = unique(regionRules.map(function(r){return r['适用范围'];})).slice(0, 6);
     var availFuel = unique(regionRules.map(function(r){return r['燃油类型'];})).slice(0, 4);
     var availVtype = unique(regionRules.map(function(r){return r['车型'];})).slice(0, 4);
-    var msg = '当前条件（燃油类型「'+ft+'」、车型「'+vt+'」、车长「'+vl+'m」、适用范围「'+sc+'」）无匹配规则。';
+    var codeTag = codeVal ? '、编码「'+codeVal+'」' : '';
+    var msg = '当前条件（燃油类型「'+ft+'」、车型「'+vt+'」、车长「'+vl+'m」、适用范围「'+sc+'」'+codeTag+'）无匹配规则。';
     if (availScopes.length > 0 && availScopes.indexOf(sc) === -1) {
       msg += '\n当前区域可用适用范围：' + availScopes.join('、');
     } else if (availVtype.length > 0 && availVtype.indexOf(vt) === -1) {
@@ -1115,6 +1336,10 @@ function resetQueryFilters() {
 
   // 级联更新省份和适用范围（基于保留的区域 + 重置后的燃油/车型/车长）
   updateCascadeFilters();
+
+  // 重置编码下拉到"全部"
+  var cs = document.getElementById('codeSelect');
+  if (cs) cs.value = '';
 
   // 不自动计算，用户自行点击「计算运费」
 }
@@ -2122,10 +2347,12 @@ function parseCSVToRules(text) {
     var isMatchMode = calcM.indexOf('匹配')>=0 || calcM.toLowerCase().indexOf('match')>=0;
 
     if (!fuel || !vtype || !scope) continue;
-    var key = fuel+'|'+vtype+'|'+vlen+'|'+scope+'|'+region;
+    // 编码加入分组 key，同适用范围不同编码不再合并
+    var key = fuel+'|'+vtype+'|'+vlen+'|'+scope+'|'+region + '|' + code;
     if (!ruleMap[key]) {
       ruleMap[key] = {
         '报价编码': code || key,
+        '编码': code || '',
         '燃油类型':fuel,'车型':vtype,'车长':vlen,'适用范围':scope,'区域':region,'省份':province,
         weightRule:{base:0,baseAmount:0,floorPrice:0,ceilPrice:0,calcMode:'tiered',tiers:[]},
         mileageRule:{base:0,baseAmount:0,calcMode:'tiered',tiers:[]}
@@ -2134,7 +2361,6 @@ function parseCSVToRules(text) {
     var rule = ruleMap[key];
     if (region && !rule['区域']) rule['区域'] = region;
     if (province && !rule['省份']) rule['省份'] = province;
-    if (code && !rule['编码']) rule['编码'] = code;
 
     var isM = calcT.indexOf('里程')>=0 || calcT.indexOf('公里')>=0 || calcT.indexOf('km')>=0;
     var isW = !isM;
@@ -2496,6 +2722,53 @@ function exportMatrixCSV() {
   if (fileCount === 0) showAlert('当前条件下无有效费率数据可导出');
 }
 
+// ========== 从项目目录读取 CSV 报价规则 ==========
+function loadFromProject() {
+  var btn = document.getElementById('btnLoadProject');
+  btn.disabled = true;
+  btn.textContent = '⏳ 加载中...';
+
+  function parseAndApply(text) {
+    // 处理 BOM
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    var newRules = parseCSVToRules(text);
+    if (!validateRules(newRules)) {
+      throw new Error('CSV 数据解析失败');
+    }
+    ruleList = newRules;
+    saveToLocalStorage();
+    buildScopeGroupMap();
+    initFilterOptions();
+    initScopeSelector();
+    calculate();
+    var matchCount = ruleList.filter(function(r){ return (r.weightRule&&r.weightRule.calcMode==='match')||(r.mileageRule&&r.mileageRule.calcMode==='match'); }).length;
+    document.getElementById('ruleStatus').textContent = '✅ 已加载（'+ruleList.length+' 条规则' + (matchCount>0 ? '，含'+matchCount+'条匹配模式':'') + '）';
+    showAlert('加载成功，共 '+ruleList.length+' 条规则');
+  }
+
+  fetch(PROJECT_DATA_URL)
+    .then(function(res) {
+      if (!res.ok) throw new Error('网络请求失败（' + res.status + '）');
+      return res.text();
+    })
+    .then(function(text) {
+      parseAndApply(text);
+    })
+    .catch(function() {
+      // 本地文件（file:// 协议）下 fetch 会被浏览器拦截，改用内嵌数据
+      try {
+        parseAndApply(EMBEDDED_CSV_DATA);
+        document.getElementById('ruleStatus').textContent += '（内嵌数据）';
+      } catch(e) {
+        showAlert('加载失败，内嵌数据也无效：' + e.message);
+      }
+    })
+    .finally(function() {
+      btn.disabled = false;
+      btn.textContent = '📂 从项目目录读取';
+    });
+}
+
 function resetDefaultRules() {
   if (!confirm('确定恢复默认报价规则？自定义规则将被清除')) return;
   localStorage.removeItem('logistics_rules_v6');
@@ -2521,6 +2794,7 @@ function exportConfig() {
         vehicleType: document.getElementById('vehicleType').value,
         vehicleLength: document.getElementById('vehicleLength').value,
         scope: document.getElementById('scope').value,
+        code: document.getElementById('codeSelect').value,
         distance: document.getElementById('distance').value,
         weightGroups: weightGroups.map(function(g){return {weight: g.weight || '', tickets: g.tickets || 1};})
       },
@@ -2561,6 +2835,7 @@ function importConfig(event) {
         if (f.vehicleType) document.getElementById('vehicleType').value = f.vehicleType;
         if (f.vehicleLength) document.getElementById('vehicleLength').value = f.vehicleLength;
         if (f.scope) document.getElementById('scope').value = f.scope;
+        if (f.code) { document.getElementById('codeSelect').value = f.code; }
         if (f.distance) document.getElementById('distance').value = f.distance;
         if (f.weightGroups && Array.isArray(f.weightGroups)) {
           weightGroups = f.weightGroups.map(function(g){return {weight: g.weight || '', tickets: Math.max(1, parseInt(g.tickets) || 1)};});
@@ -2596,8 +2871,12 @@ function importConfig(event) {
 document.addEventListener('DOMContentLoaded', function() {
   initRules();
 
+  // 自动从项目目录加载 data.csv
+  setTimeout(loadFromProject, 100);
+
   document.getElementById('btnCalc').addEventListener('click', calculate);
   document.getElementById('btnResetQuery').addEventListener('click', resetQueryFilters);
+  document.getElementById('btnLoadProject').addEventListener('click', loadFromProject);
 
   // 级联：区域变化 → 更新省份和适用范围
   document.getElementById('regionSelect').addEventListener('change', function(){
@@ -2617,7 +2896,8 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('fuelType').addEventListener('change', function(){updateFilterOptions();calculate();matrixScopesInited=false;matrixRemovedScopes.clear();});
   document.getElementById('vehicleType').addEventListener('change', function(){updateFilterOptions();calculate();matrixScopesInited=false;matrixRemovedScopes.clear();});
   document.getElementById('vehicleLength').addEventListener('change', function(){updateFilterOptions();calculate();matrixScopesInited=false;matrixRemovedScopes.clear();});
-  document.getElementById('scope').addEventListener('change', function(){currentQueryScope = this.value; calculate();});
+  document.getElementById('scope').addEventListener('change', function(){currentQueryScope = this.value; updateCodeOptions(); calculate();});
+  document.getElementById('codeSelect').addEventListener('change', function(){calculate();});
   document.getElementById('distance').addEventListener('input', function(){calculate();});
   document.getElementById('btnAddGroup').addEventListener('click', function(){addWeightGroup();});
   renderWeightGroups();
