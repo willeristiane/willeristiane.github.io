@@ -2749,10 +2749,37 @@ function loadFromProject() {
   fetch(PROJECT_DATA_URL)
     .then(function(res) {
       if (!res.ok) throw new Error('网络请求失败（' + res.status + '）');
-      return res.text();
+      return res.arrayBuffer();
+    })
+    .then(function(buffer) {
+      // 尝试不同编码解码 CSV（兼容 GBK/UTF-8）
+      function tryDecode(enc) {
+        try { return new TextDecoder(enc).decode(buffer); } catch(e) { return null; }
+      }
+      var bytes = new Uint8Array(buffer);
+      // 检测 UTF-8 BOM → 直接 UTF-8
+      if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+        var utf8Text = tryDecode('UTF-8');
+        return utf8Text ? utf8Text.slice(1) : utf8Text; // 去掉 BOM 字符
+      }
+      // 先试 UTF-8
+      var text = tryDecode('UTF-8');
+      if (text && (text.indexOf('区域') >= 0 || text.indexOf('适用范围') >= 0)) {
+        console.info('CSV 编码检测：UTF-8');
+        return text;
+      }
+      // 再试 GBK
+      var gbkText = tryDecode('GBK');
+      if (gbkText && (gbkText.indexOf('区域') >= 0 || gbkText.indexOf('适用范围') >= 0)) {
+        console.info('CSV 编码检测：GBK');
+        return gbkText;
+      }
+      // 兜底用 UTF-8
+      console.warn('CSV 编码无法自动识别，默认 UTF-8');
+      return text || '';
     })
     .then(function(text) {
-      console.log('fetch 返回的内容（前300字符）:', text.slice(0,300));
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
       parseAndApply(text);
     })
     .catch(function(err) {
